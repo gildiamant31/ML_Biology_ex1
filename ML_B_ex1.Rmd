@@ -15,8 +15,57 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
+First, load the tidyverse library, which contains everything we need to perform this analysis.
+```{r setup, include=FALSE}
+library(tidyverse)
+```
+
+import the dataset to a local variable:
+```{r}
+surveys <- read_csv("netflix-rotten-tomatoes-metacritic-imdb.csv")
+```
+
+taking a quick look:
+```{r}
+str(surveys)
+view(surveys)
+```
+
+Some information is already known to us just from calling the table. We know how many rows and columns there are, and we have some idea regarding the type of variables (text, numeric) but not much else.
+
+A few commands to help us learn more about the structure of the data are shown here:
+
+```{r}
+dim(surveys)
+nrow(surveys) 
+ncol(surveys) 
+
+head(surveys)
+tail(surveys)
+
+names(surveys)
+
+str(surveys)
+summary(surveys)
+```
+
+## Data Visualisation - It is not working on this dataset!!
+
+```{r}
+ggplot(data = surveys) +
+  geom_bar(mapping = aes(x = Title))
+
+ggplot(data = surveys) +
+  geom_histogram(mapping = aes(x = "Hidden Gem Score"), binwidth = 0.5)
+
+ggplot(data = surveys) +
+  geom_histogram(mapping = aes(x = "Hidden Gem Score"), binwidth = 0.1)
+
+ggplot(data = surveys) + 
+  geom_bar(mapping = aes(x = Title, fill = Title))
+
+ggplot(data = surveys) + 
+  geom_bar(mapping = aes(x = Title, fill = Genre))
 ```
 
 ## Including Plots
