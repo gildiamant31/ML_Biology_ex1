@@ -43,6 +43,58 @@ str(surveys)
 summary(surveys)
 ```
 
+רעיונות לגרפים
+
+בדיקה של הכנסות לפי ז'אנרים
+
+השוואה בין סוגי הדירוג השונים
+
+מבקרים מול ציון סופי
+
+
+עליה בסוגים של ז'אנרים לפי שנה 
+
+כמות הצבעות לגובה ציון
+
+כמות פרסים לגובה ציון ולכמות הצבעות
+
+
+ספירת מספר מופעים של תוכן
+
+אורך לפי שפה 
+
+הכנסות סרט מול סדרה
+
+
+פקודות שימושיות 
+```{r}
+
+#הפרדת עמודה לכמה עמודות
+surveys_fixed <- surveys %>% separate(`Release Date`, c("day", "month", "year"), sep = " ", convert = TRUE)
+surveys_fixed$`Netflix Release Date` <- as.Date(surveys$`Netflix Release Date`)
+surveys_fixed$Boxoffice = gsub("\\$", "", surveys_fixed$Boxoffice)
+surveys_fixed$Boxoffice = gsub("\\,", "", surveys_fixed$Boxoffice)
+surveys_fixed$Boxoffice = as.integer(surveys_fixed$Boxoffice)
+
+
+# בחירת עמודות
+surveys_selected <- select(surveys, where(is.numeric))
+surveys_selected <- select(surveys, !starts_with("Link"))
+
+#בחירת שורות
+surveys_selected <- surveys %>% filter(grepl("Action", Genre) | `Series or Movie` == Movie)
+
+ספירת מספר מופעים של תוכן
+surveys %>% group_by(Runtime) %>%  tally(sort = TRUE)
+
+# לפרסר למספרי את הערך של זמן הסרט
+surveys$Runtime[surveys$Runtime == "1-2 hour"] <- "1.5"
+
+
+```
+
+
+
 ## Data Visualisation - It is not working on this dataset!!
 
 ```{r}
