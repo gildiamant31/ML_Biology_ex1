@@ -42,6 +42,24 @@ names(surveys)
 str(surveys)
 summary(surveys)
 ```
+## Data Variation
+
+One important fact to know about our data is its variation, can you think of reasons why? 
+
+```{r}
+# plotting a scatter plot 
+ggplot(data = surveys) +
+  geom_point(mapping = aes(x = "IMDb Score", y = "Hidden Gem Score"))
+
+# creating boxplot
+ggplot(data = surveys, mapping = aes(x = "IMDb Score", y = "Hidden Gem Score")) + 
+  geom_boxplot(mapping = aes(group = cut_width("IMDb Score", 0.1)))
+
+# Variance between two categorical variables
+ggplot(data = surveys) +
+  geom_count(mapping = aes(x = "IMDb Score", y = Genre))
+
+```
 
 רעיונות לגרפים
 
