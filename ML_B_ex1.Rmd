@@ -19,12 +19,6 @@ import the dataset to a local variable:
 surveys <- read_csv("netflix-rotten-tomatoes-metacritic-imdb.csv")
 ```
 
-taking a quick look:
-```{r}
-str(surveys)
-view(surveys)
-```
-
 Some information is already known to us just from calling the table. We know how many rows and columns there are, and we have some idea regarding the type of variables (text, numeric) but not much else.
 
 A few commands to help us learn more about the structure of the data are shown here:
@@ -46,14 +40,26 @@ summary(surveys)
 
 One important fact to know about our data is its variation, can you think of reasons why? 
 
+hidden gems 
+זה מדד בשביל לאתר סרטים טובים ולא מוכרים - סרט מקבל ציון גבוה אם יש לו קצת הצבעות אבל עם ציונים גבוהים
+
+IMDb Score, Rotten Tomatoes Score, Metacritic Score
+זה ציונים לסרט מ3 אתרים שונים - אין בניהם הבדל מהותי
+
 ```{r}
+
+# אפשר לומר שיש פה 2 קבוצות - כאלה עם ממש מעט הצבעות וציון לא משהו וכאלה שבאמת יש להם ציון טוב
 # plotting a scatter plot 
-ggplot(data = surveys) +
-  geom_point(mapping = aes(x = "IMDb Score", y = "Hidden Gem Score"))
+ggplot(data = surveys,  aes(y = `Hidden Gem Score`, x= `IMDb Score`)) +
+  geom_point() + theme_classic2()
+
+head(surveys$`Hidden Gem Score`)
+head(surveys$`IMDb Score`)
+
 
 # creating boxplot
-ggplot(data = surveys, mapping = aes(x = "IMDb Score", y = "Hidden Gem Score")) + 
-  geom_boxplot(mapping = aes(group = cut_width("IMDb Score", 0.1)))
+ggplot(data = surveys, mapping = aes(x = `IMDb Score`, y = `Hidden Gem Score`)) + 
+  geom_boxplot(mapping = aes(group = cut_width(`IMDb Score`, 0.1)))
 
 # Variance between two categorical variables
 ggplot(data = surveys) +
