@@ -51,7 +51,7 @@ IMDb Score, Rotten Tomatoes Score, Metacritic Score
 # אפשר לומר שיש פה 2 קבוצות - כאלה עם ממש מעט הצבעות וציון לא משהו וכאלה שבאמת יש להם ציון טוב
 # plotting a scatter plot 
 ggplot(data = surveys,  aes(y = `Hidden Gem Score`, x= `IMDb Score`)) +
-  geom_point() + theme_classic2()
+  geom_point() + theme_classic()
 
 head(surveys$`Hidden Gem Score`)
 head(surveys$`IMDb Score`)
@@ -105,10 +105,10 @@ surveys_fixed$Boxoffice = as.integer(surveys_fixed$Boxoffice)
 surveys_selected <- select(surveys, where(is.numeric))
 surveys_selected <- select(surveys, !starts_with("Link"))
 
-#בחירת שורות
+# בחירת שורות
 surveys_selected <- surveys %>% filter(grepl("Action", Genre) | `Series or Movie` == Movie)
 
-ספירת מספר מופעים של תוכן
+# ספירת מספר מופעים של תוכן
 surveys %>% group_by(Runtime) %>%  tally(sort = TRUE)
 
 # לפרסר למספרי את הערך של זמן הסרט
@@ -126,16 +126,13 @@ ggplot(data = surveys) +
   geom_bar(mapping = aes(x = Title))
 
 ggplot(data = surveys) +
-  geom_histogram(mapping = aes(x = "Hidden Gem Score"), binwidth = 0.5)
-
-ggplot(data = surveys) +
-  geom_histogram(mapping = aes(x = "Hidden Gem Score"), binwidth = 0.1)
+  geom_histogram(mapping = aes(x = `Hidden Gem Score`), binwidth = 0.5)
 
 ggplot(data = surveys) + 
   geom_bar(mapping = aes(x = Title, fill = Title))
 
-ggplot(data = surveys) + 
-  geom_bar(mapping = aes(x = Title, fill = Genre))
+#ggplot(data = surveys) + 
+#  geom_bar(mapping = aes(x = Title, fill = Genre))
 ```
 
 ## Including Plots
