@@ -5,12 +5,10 @@ date: "29 3 2022"
 output: pdf_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 
 here some intrduction
 ```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 ```
 
@@ -35,36 +33,6 @@ names(surveys)
 
 str(surveys)
 summary(surveys)
-```
-## Data Variation
-
-One important fact to know about our data is its variation, can you think of reasons why? 
-
-hidden gems 
-זה מדד בשביל לאתר סרטים טובים ולא מוכרים - סרט מקבל ציון גבוה אם יש לו קצת הצבעות אבל עם ציונים גבוהים
-
-IMDb Score, Rotten Tomatoes Score, Metacritic Score
-זה ציונים לסרט מ3 אתרים שונים - אין בניהם הבדל מהותי
-
-```{r}
-
-# אפשר לומר שיש פה 2 קבוצות - כאלה עם ממש מעט הצבעות וציון לא משהו וכאלה שבאמת יש להם ציון טוב
-# plotting a scatter plot 
-ggplot(data = surveys,  aes(y = `Hidden Gem Score`, x= `IMDb Score`)) +
-  geom_point() + theme_classic()
-
-head(surveys$`Hidden Gem Score`)
-head(surveys$`IMDb Score`)
-
-
-# creating boxplot
-ggplot(data = surveys, mapping = aes(x = `IMDb Score`, y = `Hidden Gem Score`)) + 
-  geom_boxplot(mapping = aes(group = cut_width(`IMDb Score`, 0.1)))
-
-# Variance between two categorical variables
-ggplot(data = surveys) +
-  geom_count(mapping = aes(x = "IMDb Score", y = Genre))
-
 ```
 
 רעיונות לגרפים
@@ -112,11 +80,41 @@ surveys_selected <- surveys %>% filter( grepl("Action", Genre) & `Series or Movi
 surveys %>% group_by(Runtime) %>%  tally(sort = TRUE)
 
 # לפרסר למספרי את הערך של זמן הסרט
-surveys$Runtime[surveys$Runtime == "1-2 hour"] <- "1.5"
+# surveys$Runtime[surveys$Runtime == "1-2 hour"] <- "1.5"
 
 
 ```
 
+## Data Variation
+
+One important fact to know about our data is its variation, can you think of reasons why? 
+
+hidden gems 
+זה מדד בשביל לאתר סרטים טובים ולא מוכרים - סרט מקבל ציון גבוה אם יש לו קצת הצבעות אבל עם ציונים גבוהים
+
+IMDb Score, Rotten Tomatoes Score, Metacritic Score
+זה ציונים לסרט מ3 אתרים שונים - אין בניהם הבדל מהותי
+
+```{r}
+
+# אפשר לומר שיש פה 2 קבוצות - כאלה עם ממש מעט הצבעות וציון לא משהו וכאלה שבאמת יש להם ציון טוב
+# plotting a scatter plot 
+ggplot(data = surveys,  aes(y = `Hidden Gem Score`, x= `IMDb Score`)) +
+  geom_point() + theme_classic()
+
+head(surveys$`Hidden Gem Score`)
+head(surveys$`IMDb Score`)
+
+
+# creating boxplot
+ggplot(data = surveys, mapping = aes(x = `IMDb Score`, y = `Hidden Gem Score`)) + 
+  geom_boxplot(mapping = aes(group = cut_width(`IMDb Score`, 0.1)))
+
+# Variance between two categorical variables
+ggplot(data = surveys) +
+  geom_count(mapping = aes(x = "IMDb Score", y = Genre))
+
+```
 
 
 ## Data Visualisation - It is not working on this dataset!!
@@ -131,18 +129,8 @@ ggplot(data = surveys) +
   geom_histogram(mapping = aes(x = `Hidden Gem Score`), binwidth = 0.5)
 
 ggplot(data = surveys) + 
-  geom_bar(mapping = aes(x = Genre, fill = Runtime))
+  geom_bar(mapping = aes(x = Runtime, fill = Runtime))
 
-#ggplot(data = surveys) + 
-#  geom_bar(mapping = aes(x = Title, fill = Genre))
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
