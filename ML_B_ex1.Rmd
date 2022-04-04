@@ -101,12 +101,12 @@ surveys_fixed$Boxoffice = gsub("\\,", "", surveys_fixed$Boxoffice)
 surveys_fixed$Boxoffice = as.integer(surveys_fixed$Boxoffice)
 
 
-# בחירת עמודות
+# בחירת עמודות- סתם דוגמאות
 surveys_selected <- select(surveys, where(is.numeric))
 surveys_selected <- select(surveys, !starts_with("Link"))
 
-# בחירת שורות
-surveys_selected <- surveys %>% filter(grepl("Action", Genre) | `Series or Movie` == Movie)
+# בחירת שורות סתם דוגמאות 
+surveys_selected <- surveys %>% filter( grepl("Action", Genre) & `Series or Movie` == "Movie")
 
 # ספירת מספר מופעים של תוכן
 surveys %>% group_by(Runtime) %>%  tally(sort = TRUE)
@@ -123,13 +123,15 @@ surveys$Runtime[surveys$Runtime == "1-2 hour"] <- "1.5"
 
 ```{r}
 ggplot(data = surveys) +
-  geom_bar(mapping = aes(x = Title))
+  geom_bar(mapping = aes(x = Genre))
 
+
+surveys$`Hidden Gem Score` <- as.numeric(surveys$`Hidden Gem Score`)
 ggplot(data = surveys) +
   geom_histogram(mapping = aes(x = `Hidden Gem Score`), binwidth = 0.5)
 
 ggplot(data = surveys) + 
-  geom_bar(mapping = aes(x = Title, fill = Title))
+  geom_bar(mapping = aes(x = Genre, fill = Runtime))
 
 #ggplot(data = surveys) + 
 #  geom_bar(mapping = aes(x = Title, fill = Genre))
