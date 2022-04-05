@@ -143,9 +143,6 @@ ggplot(data = surveys) +
 ## Data Visualisation - 
 
 ```{r}
-ggplot(data = surveys) +
-  geom_bar(mapping = aes(x = Genre))
-
 
 surveys$`Hidden Gem Score` <- as.numeric(surveys$`Hidden Gem Score`)
 ggplot(data = surveys) +
