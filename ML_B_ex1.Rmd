@@ -8,12 +8,13 @@ output: pdf_document
 
 here some intrduction
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-library(tidyverse)
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=3)
 ```
 
 import the dataset to a local variable:
-```{r}
+```{r include = FALSE}
+library(ggplot2) # load the ggplot2 library
+library(dplyr)
 surveys <- read_csv("netflix-rotten-tomatoes-metacritic-imdb.csv")
 ```
 
@@ -23,16 +24,16 @@ A few commands to help us learn more about the structure of the data are shown h
 
 ```{r}
 dim(surveys)
-nrow(surveys) 
-ncol(surveys) 
+nrow(surveys) # already in dim
+ncol(surveys) # already in dim 
 
-head(surveys)
-tail(surveys)
+head(surveys) # remove output too long
+tail(surveys) # remove output too long
 
-names(surveys)
+names(surveys)  
 
-str(surveys)
-summary(surveys)
+str(surveys) # remove output too long
+summary(surveys) # remove output too long
 ```
 
 רעיונות לגרפים
@@ -66,21 +67,26 @@ surveys_fixed <- surveys %>% separate(`Release Date`, c("day", "month", "year"),
 surveys_fixed$`Netflix Release Date` <- as.Date(surveys$`Netflix Release Date`)
 surveys_fixed$Boxoffice = gsub("\\$", "", surveys_fixed$Boxoffice)
 surveys_fixed$Boxoffice = gsub("\\,", "", surveys_fixed$Boxoffice)
-surveys_fixed$Boxoffice = as.integer(surveys_fixed$Boxoffice)
+surveys_fixed$Boxoffice = as.numeric(surveys_fixed$Boxoffice)
+# לפרסר למספרי את הערך של זמן הסרט
+surveys$Runtime[surveys$Runtime == "1-2 hour"] <- "1.5"
+surveys$Runtime[surveys$Runtime == "< 30 minutes"] <- "0.5"
+surveys$Runtime[surveys$Runtime == "> 2 hrs"] <- "2"
+surveys$Runtime[surveys$Runtime == "30-60 mins"] <- "1"
+surveys$Runtime <- as.numeric(surveys$Runtime)
 
 
 # בחירת עמודות- סתם דוגמאות
-surveys_selected <- select(surveys, where(is.numeric))
-surveys_selected <- select(surveys, !starts_with("Link"))
+#surveys_selected <- select(surveys, where(is.numeric))
+#surveys_selected <- select(surveys, !starts_with("Link"))
 
 # בחירת שורות סתם דוגמאות 
-surveys_selected <- surveys %>% filter( grepl("Action", Genre) & `Series or Movie` == "Movie")
+#surveys_selected <- surveys %>% filter( grepl("Action", Genre) & `Series or Movie` == "Movie")
 
 # ספירת מספר מופעים של תוכן
 surveys %>% group_by(Runtime) %>%  tally(sort = TRUE)
 
-# לפרסר למספרי את הערך של זמן הסרט
-# surveys$Runtime[surveys$Runtime == "1-2 hour"] <- "1.5"
+
 
 
 ```
@@ -102,8 +108,8 @@ IMDb Score, Rotten Tomatoes Score, Metacritic Score
 ggplot(data = surveys,  aes(y = `Hidden Gem Score`, x= `IMDb Score`)) +
   geom_point() + theme_classic()
 
-head(surveys$`Hidden Gem Score`)
-head(surveys$`IMDb Score`)
+one_lan <- surveys %>% filter(Languages=="English" | Languages=="Japanese" | Languages=="Korean" | Languages=="Spanish" | Languages=="Hindi" | Languages=="French" | Languages=="German")
+ggplot(data = one_lan, aes(x=Languages, y=Runtime)) + geom_count()
 
 
 # creating boxplot
@@ -117,7 +123,7 @@ ggplot(data = surveys) +
 ```
 
 
-## Data Visualisation - It is not working on this dataset!!
+## Data Visualisation - 
 
 ```{r}
 ggplot(data = surveys) +
