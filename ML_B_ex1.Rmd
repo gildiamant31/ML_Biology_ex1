@@ -16,25 +16,20 @@ import the dataset to a local variable:
 library(ggplot2) # load the ggplot2 library
 library(dplyr)
 library(tidyverse)
+library(scales)
 surveys <- read_csv("netflix-rotten-tomatoes-metacritic-imdb.csv")
 ```
 
 Some information is already known to us just from calling the table. We know how many rows and columns there are, and we have some idea regarding the type of variables (text, numeric) but not much else.
 
-A few commands to help us learn more about the structure of the data are shown here:
+We use few commands to get more information about the data and got table dimension, names of columns and basic summary of the data in the table:
 
 ```{r}
 dim(surveys)
-nrow(surveys) # already in dim
-ncol(surveys) # already in dim 
-
-head(surveys) # remove output too long
-tail(surveys) # remove output too long
 
 names(surveys)  
 
-str(surveys) # remove output too long
-summary(surveys) # remove output too long
+summary(surveys) 
 ```
 
 רעיונות לגרפים
@@ -69,6 +64,7 @@ surveys_fixed$`Netflix Release Date` <- as.Date(surveys$`Netflix Release Date`)
 surveys_fixed$Boxoffice = gsub("\\$", "", surveys_fixed$Boxoffice)
 surveys_fixed$Boxoffice = gsub("\\,", "", surveys_fixed$Boxoffice)
 surveys_fixed$Boxoffice = as.numeric(surveys_fixed$Boxoffice)
+surveys_fixed <- subset(surveys_fixed, !is.na(Boxoffice))
 # לפרסר למספרי את הערך של זמן הסרט
 surveys$Runtime[surveys$Runtime == "1-2 hour"] <- "1.5"
 surveys$Runtime[surveys$Runtime == "< 30 minutes"] <- "0.5"
@@ -76,6 +72,8 @@ surveys$Runtime[surveys$Runtime == "> 2 hrs"] <- "2"
 surveys$Runtime[surveys$Runtime == "30-60 mins"] <- "1"
 #surveys$Runtime <- as.numeric(surveys$Runtime)
 
+# Remove all  rows which contain comma in Genere column 
+surveys_fixed <- surveys_fixed[!grepl(",", surveys_fixed$Genre), ]
 
 # בחירת עמודות- סתם דוגמאות
 #surveys_selected <- select(surveys, where(is.numeric))
@@ -115,6 +113,20 @@ ggplot(data = surveys,  aes(y = `Hidden Gem Score`, x= `IMDb Score`)) +
 one_lan <- surveys %>% filter(Languages=="English" | Languages=="Japanese" | Languages=="Korean" | Languages=="Spanish" | Languages=="Hindi" | Languages=="French" | Languages=="German")
 
 ggplot(data = one_lan, aes(x=Languages, y=Runtime)) + geom_count()
+
+# Movie vs Series on boxoffice in Billion dollars 
+ggplot(data = surveys_fixed , aes(x=Boxoffice, y=`Series or Movie` , fill = `Series or Movie`)) +
+  geom_col() + 
+  scale_x_continuous(labels = label_number(suffix = " B", scale = 1e-9))+ 
+  labs( title = "Movie Vs Series by Revenues in Bilion USD",
+  y = "Movie or Series", x = "Revenues (USD)")
+
+# Revenues by Genres in Billion dollars 
+ggplot(data = surveys_fixed ,mapping = aes(x=Boxoffice, y= Genre, fill = Genre)) +
+  geom_col() + 
+  scale_x_continuous(labels = label_number(suffix = " B", scale = 1e-9))+ 
+  labs( title = "Compare Revenues of all Genres in Bilion USD",
+  y = "Genres", x = "Revenues (USD)")
 
 
 # creating boxplot
