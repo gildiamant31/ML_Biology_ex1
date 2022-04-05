@@ -15,6 +15,7 @@ import the dataset to a local variable:
 ```{r include = FALSE}
 library(ggplot2) # load the ggplot2 library
 library(dplyr)
+library(tidyverse)
 surveys <- read_csv("netflix-rotten-tomatoes-metacritic-imdb.csv")
 ```
 
@@ -73,7 +74,7 @@ surveys$Runtime[surveys$Runtime == "1-2 hour"] <- "1.5"
 surveys$Runtime[surveys$Runtime == "< 30 minutes"] <- "0.5"
 surveys$Runtime[surveys$Runtime == "> 2 hrs"] <- "2"
 surveys$Runtime[surveys$Runtime == "30-60 mins"] <- "1"
-surveys$Runtime <- as.numeric(surveys$Runtime)
+#surveys$Runtime <- as.numeric(surveys$Runtime)
 
 
 # בחירת עמודות- סתם דוגמאות
@@ -82,6 +83,9 @@ surveys$Runtime <- as.numeric(surveys$Runtime)
 
 # בחירת שורות סתם דוגמאות 
 #surveys_selected <- surveys %>% filter( grepl("Action", Genre) & `Series or Movie` == "Movie")
+
+# הורדת שורות עם NA
+surveys <- subset(surveys, !is.na(Runtime))
 
 # ספירת מספר מופעים של תוכן
 surveys %>% group_by(Runtime) %>%  tally(sort = TRUE)
@@ -109,6 +113,7 @@ ggplot(data = surveys,  aes(y = `Hidden Gem Score`, x= `IMDb Score`)) +
   geom_point() + theme_classic()
 
 one_lan <- surveys %>% filter(Languages=="English" | Languages=="Japanese" | Languages=="Korean" | Languages=="Spanish" | Languages=="Hindi" | Languages=="French" | Languages=="German")
+
 ggplot(data = one_lan, aes(x=Languages, y=Runtime)) + geom_count()
 
 
@@ -134,7 +139,7 @@ surveys$`Hidden Gem Score` <- as.numeric(surveys$`Hidden Gem Score`)
 ggplot(data = surveys) +
   geom_histogram(mapping = aes(x = `Hidden Gem Score`), binwidth = 0.5)
 
-ggplot(data = surveys) + 
+ggplot(data = surveys , color = Runtime) + 
   geom_bar(mapping = aes(x = Runtime, fill = Runtime))
 
 ```
