@@ -6,17 +6,22 @@ output: pdf_document
 ---
 
 
-here some intrduction
+setup & configure of the plots (each plot present in different figure)
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=3)
 ```
 
-import the dataset to a local variable:
-```{r include = FALSE}
+
+load all relevant libraries for using on EDA:
+```{r}
 library(ggplot2) # load the ggplot2 library
 library(dplyr)
 library(tidyverse)
 library(scales)
+```
+
+import the dataset to a local variable called surveys:
+```{r include = FALSE}
 surveys <- read_csv("netflix-rotten-tomatoes-metacritic-imdb.csv")
 ```
 
@@ -32,34 +37,14 @@ names(surveys)
 summary(surveys) 
 ```
 
-רעיונות לגרפים
-
-בדיקה של הכנסות לפי ז'אנרים
-
-השוואה בין סוגי הדירוג השונים
-
-מבקרים מול ציון סופי
-
-
-עליה בסוגים של ז'אנרים לפי שנה 
-
-כמות הצבעות לגובה ציון
-
-כמות פרסים לגובה ציון ולכמות הצבעות
-
-
-ספירת מספר מופעים של תוכן
-
-אורך לפי שפה 
-
-הכנסות סרט מול סדרה
-
-
 פקודות שימושיות 
 ```{r}
 
-#הפרדת עמודה לכמה עמודות
+# separate the real release date to day month and year columns - it is easier to
+# use this column like this.
 surveys_fixed <- surveys %>% separate(`Release Date`, c("day", "month", "year"), sep = " ", convert = TRUE)
+# convert year column to numeric - ignore n/a rows.
+surveys_fixed$year = as.numeric(surveys_fixed$year)
 surveys_fixed$`Netflix Release Date` <- as.Date(surveys$`Netflix Release Date`)
 surveys_fixed$Boxoffice = gsub("\\$", "", surveys_fixed$Boxoffice)
 surveys_fixed$Boxoffice = gsub("\\,", "", surveys_fixed$Boxoffice)
@@ -97,11 +82,7 @@ surveys %>% group_by(Runtime) %>%  tally(sort = TRUE)
 
 One important fact to know about our data is its variation, can you think of reasons why? 
 
-hidden gems 
-זה מדד בשביל לאתר סרטים טובים ולא מוכרים - סרט מקבל ציון גבוה אם יש לו קצת הצבעות אבל עם ציונים גבוהים
 
-IMDb Score, Rotten Tomatoes Score, Metacritic Score
-זה ציונים לסרט מ3 אתרים שונים - אין בניהם הבדל מהותי
 
 ```{r}
 
@@ -134,8 +115,12 @@ ggplot(data = surveys, mapping = aes(x = `IMDb Score`, y = `Hidden Gem Score`)) 
   geom_boxplot(mapping = aes(group = cut_width(`IMDb Score`, 0.1)))
 
 # Variance between two categorical variables
-ggplot(data = surveys) +
+ggplot(data = surveys_fixed) +
   geom_count(mapping = aes(x = "IMDb Score", y = Genre))
+
+# Sum of Genres per years
+ggplot(surveys_fixed,aes(x = year, color = Genre)) + 
+     geom_line(stat = 'count')
 
 ```
 
