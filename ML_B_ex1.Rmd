@@ -8,7 +8,7 @@ output: pdf_document
 
 setup & configure of the plots (each plot present in different figure)
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=3)
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE, fig.width=8, fig.height=3)
 ```
 
 
@@ -21,7 +21,7 @@ library(scales)
 ```
 
 import the dataset to a local variable called surveys:
-```{r include = FALSE}
+```{r}
 surveys <- read_csv("netflix-rotten-tomatoes-metacritic-imdb.csv")
 ```
 
@@ -138,4 +138,14 @@ ggplot(data = surveys , color = Runtime) +
 
 ```
 
+
+
+```{r}
+unique(surveys$`Series or Movie`)
+lapply(surveys$`Country Availability`, function(x){length(unlist(strsplit(x,",")))})
+surveys2$a <- 0
+ggplot(data = surveys[surveys$`Country Availability` == "Canada",],  aes(y = `Hidden Gem Score`, x= `Series or Movie`,  fill = `Series or Movie`)) +
+  geom_boxplot()  +theme_classic() + labs(title= "blabla")
+
+```
 
