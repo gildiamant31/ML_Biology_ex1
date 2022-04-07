@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE, fig.width=8, fi
 
 
 load all relevant libraries for using on EDA:
-```{r}
+```{r echo=FALSE}
 library(ggplot2) # load the ggplot2 library
 library(dplyr)
 library(tidyverse)
@@ -21,44 +21,41 @@ library(scales)
 ```
 
 import the dataset to a local variable called surveys:
-```{r}
+```{r echo=FALSE}
 surveys <- read_csv("netflix-rotten-tomatoes-metacritic-imdb.csv")
 ```
 
-Some information is already known to us just from calling the table. We know how many rows and columns there are, and we have some idea regarding the type of variables (text, numeric) but not much else.
-
-We use few commands to get more information about the data and got table dimension, names of columns and basic summary of the data in the table:
+Firstly, lets observe the properties of the data for getting ideas for graphs -
 
 ```{r}
 dim(surveys)
 
 names(surveys)  
-
-summary(surveys) 
 ```
-
-פקודות שימושיות 
+Editing the table for our EDA
+ 
 ```{r}
 
-# separate the real release date to day month and year columns - it is easier to
-# use this column like this.
+# separate the release-date to day month and year columns - it is easier to
+# use this column like this and convert year column to numeric 
 surveys_fixed <- surveys %>% separate(`Release Date`, c("day", "month", "year"), sep = " ", convert = TRUE)
-# convert year column to numeric - ignore n/a rows.
-surveys_fixed$year = as.numeric(surveys_fixed$year)
+# convert 
 surveys_fixed$`Netflix Release Date` <- as.Date(surveys$`Netflix Release Date`)
+# convert the income to integer
 surveys_fixed$Boxoffice = gsub("\\$", "", surveys_fixed$Boxoffice)
 surveys_fixed$Boxoffice = gsub("\\,", "", surveys_fixed$Boxoffice)
 surveys_fixed$Boxoffice = as.numeric(surveys_fixed$Boxoffice)
-surveys_fixed <- subset(surveys_fixed, !is.na(Boxoffice))
+#remove NA from box
+surveys_fixed_no_box_NA <- subset(surveys_fixed, !is.na(Boxoffice))
 # לפרסר למספרי את הערך של זמן הסרט
-surveys$Runtime[surveys$Runtime == "1-2 hour"] <- "1.5"
-surveys$Runtime[surveys$Runtime == "< 30 minutes"] <- "0.5"
-surveys$Runtime[surveys$Runtime == "> 2 hrs"] <- "2"
-surveys$Runtime[surveys$Runtime == "30-60 mins"] <- "1"
-#surveys$Runtime <- as.numeric(surveys$Runtime)
+# surveys_fixed$Runtime[surveys$Runtime == "1-2 hour"] <- "1.5"
+# surveys_fixed$Runtime[surveys$Runtime == "< 30 minutes"] <- "0.5"
+# surveys_fixed$Runtime[surveys$Runtime == "> 2 hrs"] <- "2"
+# surveys_fixed$Runtime[surveys$Runtime == "30-60 mins"] <- "1"
+# surveys_fixed$Runtime <- as.numeric(surveys_fixed$Runtime)
 
-# Remove all  rows which contain comma in Genere column 
-surveys_fixed <- surveys_fixed[!grepl(",", surveys_fixed$Genre), ]
+# Remove all  rows which contain comma in Genere column - throw away to many rows
+surveys_fixed_one_genre <- surveys_fixed[!grepl(",", surveys_fixed$Genre), ]
 
 # בחירת עמודות- סתם דוגמאות
 #surveys_selected <- select(surveys, where(is.numeric))
@@ -72,30 +69,42 @@ surveys <- subset(surveys, !is.na(Runtime))
 
 # ספירת מספר מופעים של תוכן
 surveys %>% group_by(Runtime) %>%  tally(sort = TRUE)
+```
+We wanted to check the correlation between the movie's language and the movie's time length. From results we can see that its most likely to have 1.5 hours movie.
+```{r}
+
+one_lan <- surveys_fixed %>% filter((Languages=="English" | Languages=="Japanese" | Languages=="Korean" | Languages=="Spanish" | Languages=="Hindi" | Languages=="French" | Languages=="German")& (`Series or Movie`=="Movie"))
+
+one_lan$Runtime[one_lan$Runtime == "1-2 hour"] <- "1.5"
+one_lan$Runtime[one_lan$Runtime == "< 30 minutes"] <- "0.5"
+one_lan$Runtime[one_lan$Runtime == "> 2 hrs"] <- "2"
+one_lan$Runtime[one_lan$Runtime == "30-60 mins"] <- "1"
+one_lan$Runtime <- as.numeric(one_lan$Runtime)
 
 
-
-
+ggplot(data = one_lan, aes(x=Languages, y=Runtime)) + geom_count() +
+  labs(title = "Counting movies of a certain length per Language")
 ```
 
-## Data Variation
 
-One important fact to know about our data is its variation, can you think of reasons why? 
+
+Hidden gem score is a measurement for an putative unknown good movie. We wanted to explore whether the unknown good movies is also counted as good movies in the general IMDB score.
+The results shows that there is movies with mid gem-score but with very low IMDB score which means there are probably bad movies. but the movies with the high gem score are mostly have very good IMDB-score
+```{r}
+
+# אפשר לומר שיש פה 2 קבוצות - כאלה עם ממש מעט הצבעות וציון לא משהו וכאלה שבאמת יש להם ציון טוב
+# plotting a scatter plot איתמר תסביר מה עשית פה
+ggplot(data = surveys,  aes(y =`IMDb Score` , x= `Hidden Gem Score`)) +
+  geom_point() + theme_classic() +
+  labs(title = "IMDb Score vs Hidden Gem Score")
+```
 
 
 
 ```{r}
 
-# אפשר לומר שיש פה 2 קבוצות - כאלה עם ממש מעט הצבעות וציון לא משהו וכאלה שבאמת יש להם ציון טוב
-# plotting a scatter plot איתמר תסביר מה עשית פה
-ggplot(data = surveys,  aes(y = `Hidden Gem Score`, x= `IMDb Score`)) +
-  geom_point() + theme_classic() +
-  labs(title = "ITAMAR EXPLAINATION")
-# We wanted to check the correlation between the movie's language and the movie's time length. From results we can see that its most likely to have 1.5 hours movie.
-one_lan <- surveys %>% filter(Languages=="English" | Languages=="Japanese" | Languages=="Korean" | Languages=="Spanish" | Languages=="Hindi" | Languages=="French" | Languages=="German")
 
-ggplot(data = one_lan, aes(x=Languages, y=Runtime)) + geom_count() +
-  labs(title = "Counting movies of a certain length per Language")
+
 
 # Movie vs Series on boxoffice in Billion dollars
 ggplot(data = surveys_fixed , aes(x=Boxoffice, y=`Series or Movie` , fill = `Series or Movie`)) +
