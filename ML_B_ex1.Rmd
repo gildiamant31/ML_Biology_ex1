@@ -66,28 +66,30 @@ surveys_fixed_one_genre <- surveys_fixed[!grepl(",", surveys_fixed$Genre), ]
 
 # הורדת שורות עם NA
 surveys <- subset(surveys, !is.na(Runtime))
+surveys_fixed$Genre <- sub('.*,\\s*', '', surveys_fixed$Genre)
+
 
 # ספירת מספר מופעים של תוכן
 surveys %>% group_by(Runtime) %>%  tally(sort = TRUE)
 ```
-We wanted to check the correlation between the movie's language and the movie's time length. From results we can see that its most likely to have 1.5 hours movie.
+We wanted to check the correlation between the movie's language and the movie's time length. From results we conclude interesting findings:
+- in English most common movies are 1-2 hours length
+- in Korean there are no short movies (=less then 1 hours)
+- in Hinde there is no medium movies (= 30-60 minutes)
 ```{r}
 
 one_lan <- surveys_fixed %>% filter((Languages=="English" | Languages=="Japanese" | Languages=="Korean" | Languages=="Spanish" | Languages=="Hindi" | Languages=="French" | Languages=="German")& (`Series or Movie`=="Movie"))
 
-one_lan$Runtime[one_lan$Runtime == "1-2 hour"] <- "1.5"
-one_lan$Runtime[one_lan$Runtime == "< 30 minutes"] <- "0.5"
-one_lan$Runtime[one_lan$Runtime == "> 2 hrs"] <- "2"
-one_lan$Runtime[one_lan$Runtime == "30-60 mins"] <- "1"
-one_lan$Runtime <- as.numeric(one_lan$Runtime)
+# one_lan$Runtime[one_lan$Runtime == "1-2 hour"] <- "1.5"
+# one_lan$Runtime[one_lan$Runtime == "< 30 minutes"] <- "0.5"
+# one_lan$Runtime[one_lan$Runtime == "> 2 hrs"] <- "2"
+# one_lan$Runtime[one_lan$Runtime == "30-60 mins"] <- "1"
+# one_lan$Runtime <- as.numeric(one_lan$Runtime)
 
 
-ggplot(data = one_lan, aes(x=Languages, y=Runtime)) + geom_count() +
+ggplot(data = one_lan, aes(x=Languages, y=Runtime)) + geom_count()
   labs(title = "Counting movies of a certain length per Language")
 ```
-
-
-
 Hidden gem score is a measurement for an putative unknown good movie. We wanted to explore whether the unknown good movies is also counted as good movies in the general IMDB score.
 The results shows that there is movies with mid gem-score but with very low IMDB score which means there are probably bad movies. but the movies with the high gem score are mostly have very good IMDB-score
 ```{r}
@@ -102,9 +104,6 @@ ggplot(data = surveys,  aes(y =`IMDb Score` , x= `Hidden Gem Score`)) +
 
 
 ```{r}
-
-
-
 
 # Movie vs Series on boxoffice in Billion dollars
 ggplot(data = surveys_fixed , aes(x=Boxoffice, y=`Series or Movie` , fill = `Series or Movie`)) +
@@ -132,8 +131,8 @@ ggplot(data = surveys_fixed) +
 # Sum of Genres per years
 ggplot(surveys_fixed,aes(x = year, color = Genre)) + 
      geom_line(stat = 'count') +
-  labs( title = "Count",
-  y = "Genres", x = "Revenues (USD)")
+  labs( title = "Sum of per gener over the year",
+  y = "Genres", x = "Years")
 
 ```
 
@@ -155,9 +154,14 @@ ggplot(data = surveys , color = Runtime) +
 
 ```{r}
 unique(surveys$`Series or Movie`)
-lapply(surveys$`Country Availability`, function(x){length(unlist(strsplit(x,",")))})
-surveys2$a <- 0
-ggplot(data = surveys[surveys$`Country Availability` == "Canada",],  aes(y = `Hidden Gem Score`, x= `Series or Movie`,  fill = `Series or Movie`)) +
+surveys$Num_of_country <- lapply(surveys$`Country Availability`, function(x){length(strsplit(x,","))})
+surveys$Num_of_country <- toString(surveys$Num_of_country)
+class(surveys$Num_of_country)
+ggplot(data = surveys) + 
+  geom_bar(mapping = aes(x = Num_of_country))
+
+surveys$a <- 0
+ggplot(data = surveys[surveys$`Country Availability` == "France",],  aes(y = `Hidden Gem Score`, x= `Series or Movie`,  fill = `Series or Movie`)) +
   geom_boxplot()  +theme_classic() + labs(title= "blabla")
 
 ```
