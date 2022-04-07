@@ -87,26 +87,28 @@ One important fact to know about our data is its variation, can you think of rea
 ```{r}
 
 # אפשר לומר שיש פה 2 קבוצות - כאלה עם ממש מעט הצבעות וציון לא משהו וכאלה שבאמת יש להם ציון טוב
-# plotting a scatter plot 
+# plotting a scatter plot איתמר תסביר מה עשית פה
 ggplot(data = surveys,  aes(y = `Hidden Gem Score`, x= `IMDb Score`)) +
-  geom_point() + theme_classic()
-
+  geom_point() + theme_classic() +
+  labs(title = "ITAMAR EXPLAINATION")
+# We wanted to check the correlation between the movie's language and the movie's time length. From results we can see that its most likely to have 1.5 hours movie.
 one_lan <- surveys %>% filter(Languages=="English" | Languages=="Japanese" | Languages=="Korean" | Languages=="Spanish" | Languages=="Hindi" | Languages=="French" | Languages=="German")
 
-ggplot(data = one_lan, aes(x=Languages, y=Runtime)) + geom_count()
+ggplot(data = one_lan, aes(x=Languages, y=Runtime)) + geom_count() +
+  labs(title = "Counting movies of a certain length per Language")
 
-# Movie vs Series on boxoffice in Billion dollars 
+# Movie vs Series on boxoffice in Billion dollars
 ggplot(data = surveys_fixed , aes(x=Boxoffice, y=`Series or Movie` , fill = `Series or Movie`)) +
   geom_col() + 
   scale_x_continuous(labels = label_number(suffix = " B", scale = 1e-9))+ 
-  labs( title = "Movie Vs Series by Revenues in Bilion USD",
+  labs(title = "Movie Vs Series by Revenues in Bilion USD",
   y = "Movie or Series", x = "Revenues (USD)")
 
 # Revenues by Genres in Billion dollars 
 ggplot(data = surveys_fixed ,mapping = aes(x=Boxoffice, y= Genre, fill = Genre)) +
   geom_col() + 
-  scale_x_continuous(labels = label_number(suffix = " B", scale = 1e-9))+ 
-  labs( title = "Compare Revenues of all Genres in Bilion USD",
+  scale_x_continuous(labels = label_number(suffix = "B", scale = 1e-9))+ 
+  labs(title = "Compare Revenues of all Genres in Bilion USD",
   y = "Genres", x = "Revenues (USD)")
 
 
@@ -114,13 +116,15 @@ ggplot(data = surveys_fixed ,mapping = aes(x=Boxoffice, y= Genre, fill = Genre))
 ggplot(data = surveys, mapping = aes(x = `IMDb Score`, y = `Hidden Gem Score`)) + 
   geom_boxplot(mapping = aes(group = cut_width(`IMDb Score`, 0.1)))
 
-# Variance between two categorical variables
+# We wanted to check what is category with the average best IMDB score. From results we can see that Drama category gets the best IMDB score average. 
 ggplot(data = surveys_fixed) +
-  geom_count(mapping = aes(x = "IMDb Score", y = Genre))
+  geom_count(mapping = aes(x = "IMDb Score", y = Genre)) + labs(title= "Average IMDB score per Genre")
 
 # Sum of Genres per years
 ggplot(surveys_fixed,aes(x = year, color = Genre)) + 
-     geom_line(stat = 'count')
+     geom_line(stat = 'count') +
+  labs( title = "Count",
+  y = "Genres", x = "Revenues (USD)")
 
 ```
 
