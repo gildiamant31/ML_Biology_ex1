@@ -37,6 +37,12 @@ Editing the table for our EDA
 ```{r}
 ## helpful commands
 
+להשוות בין סוגי הדירוגים
+קשר בין דירוג לכמות פרסים
+יחס בין דירוג להכנסות
+כמות הצבעות מול גובה הציון 
+
+
 # separate the release-date to day month and year columns - it is easier to
 # use this column like this and convert year column to numeric 
 #surveys_fixed <- surveys %>% separate(`Release Date`, c("day", "month", "year"), sep = " ", convert = TRUE)
@@ -72,48 +78,60 @@ Editing the table for our EDA
 
 #surveys %>% group_by(Runtime) %>%  tally(sort = TRUE)
 ```
-We wanted to check the correlation between the movie's language and the movie's time length. From results we conclude interesting findings:
-- in English most common movies are 1-2 hours length
-- in Korean there are no short movies (=less then 1 hours)
-- in Hinde there is no medium movies (= 30-60 minutes)
+We assume that movies with a certain language are have properties that represent the culture the language belong to. 
+One property that can be related to a culture is the movie length. check the correlation between the movie's language and the movie's time length. 
+we looked for the top 5 popular languages, and check for them.
+From results we conclude interesting findings:
+- the movies in languages of countries with more western culture (English,French,Spanish,German) tend to be with length of 1-2 hours while movies with other languages are have also significant piece of longer(>2) movies.
+that may point out that the western culture are tend to be less patient to see a long movie
 ```{r}
-surveys_fixed <-surveys
+surveys %>% group_by(Languages) %>%  tally(sort = TRUE) %>% head(10)
+
+surveys_fixed <- surveys
+
+surveys_fixed$Runtime[surveys$Runtime == "1-2 hour"] <- "1.5"
+surveys_fixed$Runtime[surveys$Runtime == "< 30 minutes"] <- "0.3"
+surveys_fixed$Runtime[surveys$Runtime == "> 2 hrs"] <- "2.5"
+surveys_fixed$Runtime[surveys$Runtime == "30-60 mins"] <- "0.7"
+surveys_fixed$Runtime <- as.numeric(surveys_fixed$Runtime)
+
 one_lan <- surveys_fixed %>% filter((Languages=="English" | Languages=="Japanese" | Languages=="Korean" | Languages=="Spanish" | Languages=="Hindi" | Languages=="French" | Languages=="German")& (`Series or Movie`=="Movie"))
 
-ggplot(data = one_lan, aes(x=Languages, y=Runtime)) + geom_count()+
+ggplot(data = one_lan, aes(x=Languages, y=Runtime, fill=Languages)) + geom_boxplot()+ geom_point()+
+  theme_bw() +
   labs(title = "Counting movies of a certain length per Language")
+
 ```
 Hidden gem score is a measurement for an putative unknown good movie. We wanted to explore whether the unknown good movies is also counted as good movies in the general IMDB score.
 The results of those two plots show us that there is movies with mid gem-score but with very low IMDB score which means there are probably bad movies. but the movies with the high gem score are mostly have very good IMDB-score
 ```{r}
 # plotting a scatter plot
-ggplot(data = surveys,  aes(y =`IMDb Score` , x= `Hidden Gem Score`)) +
+ggplot(data = surveys,  aes(y =`IMDb Score` , x= `Hidden Gem Score`, color=`IMDb Score`)) +
   geom_point() + theme_classic() +
   labs(title = "IMDb Score vs Hidden Gem Score")
-# creating boxplot
-ggplot(data = surveys, mapping = aes(x = `IMDb Score`, y = `Hidden Gem Score`)) + 
-  geom_boxplot(mapping = aes(group = cut_width(`IMDb Score`, 0.1)))
 ```
 
 
 
 In this plot , We wanted to check the differences in revenues (Boxoffice) between movies & series.
-We remove the dollar sign and commas from each cell in this column and make replace the string to numeric value for easier counting.
+we manipulate the Boxoffice-data for having the ability to use it as a number in the graph.   
 We found out that movies are much more successful and have much more revenues:
 All movies in Netflix have together more than 150B dollars of revenue, in the other side all series have less then 50B dollars together.
+We also cheked the number of movies and Series and got that while there is more movies then series, the difference in the revenues is not cause mainly because of that
 ```{r}
-
 # convert the income to integer
 Boxoffice_fixed <- surveys
 Boxoffice_fixed$Boxoffice <- gsub("\\$", "", surveys$Boxoffice)
 Boxoffice_fixed$Boxoffice <- gsub("\\,", "", Boxoffice_fixed$Boxoffice)
 Boxoffice_fixed$Boxoffice <- as.numeric(Boxoffice_fixed$Boxoffice)
 # Movie vs Series on boxoffice in Billion dollars
-ggplot(data = Boxoffice_fixed , aes(x=Boxoffice, y=`Series or Movie` , fill = `Series or Movie`)) +
-  geom_col() + 
-  scale_x_continuous(labels = label_number(suffix = " B", scale = 1e-9))+ 
+ggplot(Boxoffice_fixed,aes(`Series or Movie`,Boxoffice,fill = `Series or Movie`)) +
+   geom_col() + scale_y_continuous(labels = label_number(suffix = " B", scale = 1e-9))+ 
   labs(title = "Movie Vs Series by Revenues in Bilion USD",
-  y = "Movie or Series", x = "Revenues (USD)")
+   x = "Revenues (USD)",y = "Movie or Series",) + theme_bw() 
+# TODO NA
+#number_of<-Boxoffice_fixed %>% group_by(`Series or Movie`) %>%  tally(sort = TRUE)
+ggplot(Boxoffice_fixed,aes(`Series or Movie`,fill=`Series or Movie`)) +  stat_count(geom = "bar") + theme_bw()
 ```
 
 In this plot we want to check the correlation between the genre type to revenues 
@@ -121,12 +139,12 @@ in Billion dollars.
 We used the same fixed dataset from the previous plot ("Boxoffice_fixed") with numeric values in Boxoffice column, we also edit the column of Genres - on many rows there were multiple genre in one row, so we keep in every row only the last Genre which appear in the end of every row. We also remove all rows with N/A values in genres and on Boxoffice.
 We saw in the plot that according to the dataset That Thriller genre is has the biggest revenues, but we want to emphasize the point that on this dataset there are more than 10,000 movies without any data on their revenues at all (have N/A values)  
 ```{r}
-
-Boxoffice_fixed$Genre <- sub('.*,\\s*', '', surveys_fixed$Genre)
-surveys_fixed_no_NA_revenues <- subset(Boxoffice_fixed, !is.na(Genre))
-surveys_fixed_no_NA_revenues <- subset(surveys_fixed_no_NA_revenues, !is.na(Boxoffice))
+###### יש בעיה גדולה באנליזה הזאת אנחנו משאירים את הזאנר הראשון ברשימה - אם למשל אקשן תמיד מופיע ראשון אז יהיה מלא אקשן למרות שלא בטוח שהוא הכי נפוץ
+surveys_fixed_one_genre <- Boxoffice_fixed[!grepl(",", Boxoffice_fixed$Genre), ]
+surveys_fixed_one_genre_no_NA_Genre <- subset(surveys_fixed_one_genre, !is.na(Genre))
+surveys_fixed_one_genre_no_NA_Genre_Boxoffice<- subset(surveys_fixed_one_genre_no_NA_Genre, !is.na(Boxoffice))
 # Revenues by Genres in Billion dollars 
-ggplot(data = surveys_fixed_no_NA_revenues ,mapping = aes(x=Boxoffice, y= Genre, fill = Genre)) +
+ggplot(data = surveys_fixed_one_genre_no_NA_Genre_Boxoffice ,mapping = aes(x=Boxoffice, y= Genre, fill = Genre)) +
   geom_col() + 
   scale_x_continuous(labels = label_number(suffix = "B", scale = 1e-9))+ 
   labs(title = "Compare Revenues of all Genres in Bilion USD",
@@ -137,28 +155,37 @@ We used the same fixed dataset from the previous plot and remove all N/A from Ge
 From results we can see that Drama , Comedy , Romance and Thriller category got the best IMDB score average. 
 
 ```{r}
+### סכימה של בצין זה לא עוזר
 # We wanted to check what is category with the average best IMDB score. From results we can see that Drama category gets the best IMDB score average. 
 surveys_fixed_no_NA_Genres <- subset(surveys_fixed, !is.na(Genre))
 surveys_fixed_no_NA_Genres$Genre <- sub('.*,\\s*', '', surveys_fixed_no_NA_Genres$Genre)
-ggplot(data = surveys_fixed_no_NA_Genres) +
-  geom_count(mapping = aes(x = "IMDb Score", y = Genre)) + labs(title= "Average IMDB score per Genre")
+ggplot(data = surveys_fixed_one_genre_no_NA_Genre) +
+  geom_col(mapping = aes(y =Genre,x = `IMDb Score`)) + labs(title= "Average IMDB score per Genre")
 ```
+
 
 On this plot we check the correlation between genre type and the real release date (not Netflix release date) of the movies/series.
 we use the same fixed dataset from the previous plot - "surveys_fixed_no_NA_Genres"
 and also use year column which we create from `Release date` column
-We found out that on the last 20 years the biggest  increase is in Thriller movies and after that in Drama movies.
+We found out that on the last 20 years the biggest  increase is in Thriller, Drama, romance and comedy movies.
 ```{r}
 # Sum of Genres per years
-surveys_fixed_no_NA_Genres <- surveys_fixed_no_NA_Genres %>% separate(`Release Date`, c("day", "month", "year"), sep = " ", convert = TRUE)
-ggplot(surveys_fixed_no_NA_Genres,aes(x = year, color = Genre)) + 
+surveys_fixed_one_genre_no_NA_Genre <- surveys_fixed_one_genre_no_NA_Genre %>% separate(`Release Date`, c("day", "month", "year"), sep = " ", convert = TRUE)
+ggplot(surveys_fixed_one_genre_no_NA_Genre,aes(x = year, color = Genre)) + 
      geom_line(stat = 'count') +
   labs( title = "Sum of  genre over the years",
-  y = "Genres", x = "Years")
+  y = "Genres", x = "Years") + coord_cartesian(xlim = c(2000, 2022))
 
 ```
-This is simple plot which show us the number of movies /series per length.
-We can see that the most common length is 1-2 hour (more then 7500 objects)and can probably assume that most of this counting reflects movies because it is typical length of movies (series are shorter).
+In the data, there are movie scores from three different sites - IMDb, Rotten Tomatoes and Metacritic.
+To check the relation between three different sites' scores
+```{r}
+
+```
+
+
+
+## מיותר לדעתי
 ```{r}
 ggplot(data = surveys , color = Runtime) + 
   geom_bar(mapping = aes(x = Runtime, fill = Runtime))+
@@ -172,7 +199,7 @@ ggplot(data = surveys , color = Runtime) +
 
 surveys$`Hidden Gem Score` <- as.numeric(surveys$`Hidden Gem Score`)
 ggplot(data = surveys) +
-  geom_histogram(mapping = aes(x = `Hidden Gem Score`), binwidth = 0.5)
+  geom_histogram(mapping = aes(x = `IMDb Score`), binwidth = 0.5)
 
 
 ```
