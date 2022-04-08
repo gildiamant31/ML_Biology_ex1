@@ -80,14 +80,7 @@ We wanted to check the correlation between the movie's language and the movie's 
 surveys_fixed <-surveys
 one_lan <- surveys_fixed %>% filter((Languages=="English" | Languages=="Japanese" | Languages=="Korean" | Languages=="Spanish" | Languages=="Hindi" | Languages=="French" | Languages=="German")& (`Series or Movie`=="Movie"))
 
-# one_lan$Runtime[one_lan$Runtime == "1-2 hour"] <- "1.5"
-# one_lan$Runtime[one_lan$Runtime == "< 30 minutes"] <- "0.5"
-# one_lan$Runtime[one_lan$Runtime == "> 2 hrs"] <- "2"
-# one_lan$Runtime[one_lan$Runtime == "30-60 mins"] <- "1"
-# one_lan$Runtime <- as.numeric(one_lan$Runtime)
-
-
-ggplot(data = one_lan, aes(x=Languages, y=Runtime)) + geom_count()
+ggplot(data = one_lan, aes(x=Languages, y=Runtime)) + geom_count()+
   labs(title = "Counting movies of a certain length per Language")
 ```
 Hidden gem score is a measurement for an putative unknown good movie. We wanted to explore whether the unknown good movies is also counted as good movies in the general IMDB score.
@@ -146,6 +139,7 @@ From results we can see that Drama , Comedy , Romance and Thriller category got 
 ```{r}
 # We wanted to check what is category with the average best IMDB score. From results we can see that Drama category gets the best IMDB score average. 
 surveys_fixed_no_NA_Genres <- subset(surveys_fixed, !is.na(Genre))
+surveys_fixed_no_NA_Genres$Genre <- sub('.*,\\s*', '', surveys_fixed_no_NA_Genres$Genre)
 ggplot(data = surveys_fixed_no_NA_Genres) +
   geom_count(mapping = aes(x = "IMDb Score", y = Genre)) + labs(title= "Average IMDB score per Genre")
 ```
