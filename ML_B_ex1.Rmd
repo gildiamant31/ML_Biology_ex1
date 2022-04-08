@@ -93,7 +93,7 @@ ggplot(data = one_lan, aes(x=Languages, y=Runtime)) + geom_count()
 Hidden gem score is a measurement for an putative unknown good movie. We wanted to explore whether the unknown good movies is also counted as good movies in the general IMDB score.
 The results of those two plots show us that there is movies with mid gem-score but with very low IMDB score which means there are probably bad movies. but the movies with the high gem score are mostly have very good IMDB-score
 ```{r}
-# plotting a scatter plot איתמר תסביר מה עשית פה
+# plotting a scatter plot
 ggplot(data = surveys,  aes(y =`IMDb Score` , x= `Hidden Gem Score`)) +
   geom_point() + theme_classic() +
   labs(title = "IMDb Score vs Hidden Gem Score")
