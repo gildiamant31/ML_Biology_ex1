@@ -3,3 +3,5 @@
 .RData
 .Ruserdata
 tok.txt
+.gitignore
+CopyOfML_Biology_ex1_b.Rproj
