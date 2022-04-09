@@ -1,6 +1,6 @@
 ---
 title: "ML_B_ex1"
-author: "Gil Diamant, Yishay Shlezinger & Itamar Twersky"
+author: "Gil Diamant 314978412, Yishay Shlezinger 208438119 & Itamar Twersky 311587489"
 date: "08 4 2022"
 output: pdf_document
 ---
