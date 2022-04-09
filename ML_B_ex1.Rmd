@@ -208,18 +208,7 @@ ggplot(data = surveys_fixed_one_genre_no_NA_Genre_Boxoffice ,mapping = aes(x=Box
   labs(title = "Compare Revenues of all Genres in Bilion USD",
   y = "Genres", x = "Revenues (USD)")
 ```
-We wanted to check what is category with the average best IMDB score.
-We used the same fixed dataset from the previous plot and remove all N/A from Genres column.
-From results we can see that Drama , Comedy , Romance and Thriller category got the best IMDB score average. 
 
-```{r}
-### סכימה של הציון לא אומר הרבה לדעתי לוותר יל הגרף הזה
-# We wanted to check what is category with the average best IMDB score. From results we can see that Drama category gets the best IMDB score average. 
-surveys_fixed_no_NA_Genres <- subset(surveys_fixed, !is.na(Genre))
-surveys_fixed_no_NA_Genres$Genre <- sub('.*,\\s*', '', surveys_fixed_no_NA_Genres$Genre)
-ggplot(data = surveys_fixed_one_genre_no_NA_Genre) +
-  geom_col(mapping = aes(y =Genre,x = `IMDb Score`)) + labs(title= "Average IMDB score per Genre")
-```
 
 ############ FiX TEXT dou to results#################
 On this plot we check the correlation between genre type and the real release date (not Netflix release date) of the movies/series.
