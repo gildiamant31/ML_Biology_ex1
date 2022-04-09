@@ -35,14 +35,10 @@ names(surveys)
 
 In the data, there are movie scores from three different sites - IMDb, Rotten Tomatoes and Metacritic.
 
-The Disribution of the 3 scores also tell a lot about the sites' scores.
-On blue - 'IMDb Score'.
-On red - 'Rotten Tomatoes Score'.
-On purple - 'Metacritic Score'.
 ```{r}
 
 ggplot(data = surveys) +
-  geom_histogram(mapping = aes(x = `IMDb Score`), fill="steelblue", binwidth = 0.5) + geom_histogram(mapping = aes(x = surveys$`Rotten Tomatoes Score`/10), fill="darkred", binwidth = 0.5) + geom_histogram(mapping = aes(x = surveys$`Metacritic Score`/10), fill="blueviolet", binwidth = 0.5) +  labs( title = "Sum per score type" , x = "IMDb Score & Metacritic Score & Rotten Tomatoes Score")
+  geom_histogram(mapping = aes(x = `IMDb Score`, fill="IMDb"), binwidth = 0.5) + geom_histogram(mapping = aes(x = surveys$`Rotten Tomatoes Score`/10, fill="Rotten Tomatoes Score"), binwidth = 0.5) + geom_histogram(mapping = aes(x = surveys$`Metacritic Score`/10, fill="Metacritic Score"), binwidth = 0.5) + scale_fill_manual(name = "", values = c("IMDb" = "steelblue", "Rotten Tomatoes Score" = "darkred", "Metacritic Score" = "blueviolet"))
 
 ```
 
