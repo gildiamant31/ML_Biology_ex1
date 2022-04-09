@@ -32,67 +32,17 @@ dim(surveys)
 
 names(surveys)  
 ```
-Editing the table for our EDA
- 
-```{r}
-## helpful commands
-
-להשוות בין סוגי הדירוגים
-קשר בין דירוג לכמות פרסים
-יחס בין דירוג להכנסות
-כמות הצבעות מול גובה הציון 
-
-
-# separate the release-date to day month and year columns - it is easier to
-# use this column like this and convert year column to numeric 
-#surveys_fixed <- surveys %>% separate(`Release Date`, c("day", "month", "year"), sep = " ", convert = TRUE)
-# convert 
-#surveys_fixed$`Netflix Release Date` <- as.Date(surveys$`Netflix Release Date`)
-# convert the income to integer
-#surveys_fixed$Boxoffice = gsub("\\$", "", surveys_fixed$Boxoffice)
-#surveys_fixed$Boxoffice = gsub("\\,", "", surveys_fixed$Boxoffice)
-#surveys_fixed$Boxoffice = as.numeric(surveys_fixed$Boxoffice)
-#remove NA from box
-#surveys_fixed_no_box_NA <- subset(surveys_fixed, !is.na(Boxoffice))
-#
-# surveys_fixed$Runtime[surveys$Runtime == "1-2 hour"] <- "1.5"
-# surveys_fixed$Runtime[surveys$Runtime == "< 30 minutes"] <- "0.5"
-# surveys_fixed$Runtime[surveys$Runtime == "> 2 hrs"] <- "2"
-# surveys_fixed$Runtime[surveys$Runtime == "30-60 mins"] <- "1"
-# surveys_fixed$Runtime <- as.numeric(surveys_fixed$Runtime)
-
-# Remove all  rows which contain comma in Genere column - throw away to many rows
-#surveys_fixed_one_genre <- surveys_fixed[!grepl(",", surveys_fixed$Genre), ]
-
-#
-#surveys_selected <- select(surveys, where(is.numeric))
-#surveys_selected <- select(surveys, !starts_with("Link"))
-
-#  
-#surveys_selected <- surveys %>% filter( grepl("Action", Genre) & `Series or Movie` == "Movie")
-
-#
-#surveys <- subset(surveys, !is.na(Runtime))
-#surveys_fixed$Genre <- sub('.*,\\s*', '', surveys_fixed$Genre)
-
-
-#surveys %>% group_by(Runtime) %>%  tally(sort = TRUE)
-```
 
 In the data, there are movie scores from three different sites - IMDb, Rotten Tomatoes and Metacritic.
-we checked the relation between three different sites' scores/ 
 
-```{r}
-
-```
-
-The Disribution of the 3 scores also tell a lot about the sites' scores
-
+The Disribution of the 3 scores also tell a lot about the sites' scores.
+On blue - 'IMDb Score'.
+On red - 'Rotten Tomatoes Score'.
+On purple - 'Metacritic Score'.
 ```{r}
 
 ggplot(data = surveys) +
-  geom_histogram(mapping = aes(x = `IMDb Score`), fill="steelblue", binwidth = 0.5) + geom_histogram(mapping = aes(x = surveys$`Rotten Tomatoes Score`/10), fill="darkred", binwidth = 0.5) + geom_histogram(mapping = aes(x = surveys$`Metacritic Score`/10), fill="blueviolet", binwidth = 0.5)
-
+  geom_histogram(mapping = aes(x = `IMDb Score`), fill="steelblue", binwidth = 0.5) + geom_histogram(mapping = aes(x = surveys$`Rotten Tomatoes Score`/10), fill="darkred", binwidth = 0.5) + geom_histogram(mapping = aes(x = surveys$`Metacritic Score`/10), fill="blueviolet", binwidth = 0.5) +  labs( title = "Sum per score type" , x = "IMDb Score & Metacritic Score & Rotten Tomatoes Score")
 
 ```
 
@@ -187,17 +137,16 @@ ggplot(Boxoffice_fixed,aes(`Series or Movie`,Boxoffice,fill = `Series or Movie`)
 
 
 Boxoffice_fixed_no_NA <- subset(Boxoffice_fixed, !is.na(Boxoffice))
-ggplot(Boxoffice_fixed,aes(`Series or Movie`,fill=`Series or Movie`)) +  stat_count(geom = "bar") + theme_bw()
+ggplot(Boxoffice_fixed,aes(`Series or Movie`,fill=`Series or Movie`)) +  stat_count(geom = "bar") + theme_bw() + labs(title = "Counting Movie Vs Series")
 ```
 
 In this plot we want to check the correlation between the genre type to revenues 
 in Billion dollars.
-We used the same fixed dataset from the previous plot ("Boxoffice_fixed") with numeric values in Boxoffice column, we also edit the column of Genres - on many rows there were multiple genre in one row, so we keep in every row only the last Genre which appear in the end of every row. We also remove all rows with N/A values in genres and on Boxoffice.
-We saw in the plot that according to the dataset That Thriller genre is has the biggest revenues, but we want to emphasize the point that on this dataset there are more than 10,000 movies without any data on their revenues at all (have N/A values)  
+We used the same fixed dataset from the previous plot ("Boxoffice_fixed") with numeric values in Boxoffice column, we also edit the column of Genres - on many rows there were multiple genre in one row, so we keep only the rows with one Genre only.
+We also remove all rows with N/A values in genres and on Boxoffice.
+We saw in the plot that according to the dataset That Comedy genre has the biggest revenues.
+We want to emphasize the point that on this dataset there are more than 10,000 movies without any data on their revenues at all (have N/A values)  
 ```{r}
-###### יש בעיה גדולה באנליזה הזאת אנחנו משאירים את הזאנר הראשון ברשימה - אם למשל אקשן תמיד מופיע ראשון אז יהיה מלא אקשן למרות שלא בטוח שהוא הכי נפוץ
-####  תיקנתי את זה!!!
-### צריך לתקן את הטקסט למעלה שיתאים לממצאים החדשים
 surveys_fixed_one_genre <- Boxoffice_fixed[!grepl(",", Boxoffice_fixed$Genre), ]
 surveys_fixed_one_genre_no_NA_Genre <- subset(surveys_fixed_one_genre, !is.na(Genre))
 surveys_fixed_one_genre_no_NA_Genre_Boxoffice<- subset(surveys_fixed_one_genre_no_NA_Genre, !is.na(Boxoffice))
@@ -210,16 +159,15 @@ ggplot(data = surveys_fixed_one_genre_no_NA_Genre_Boxoffice ,mapping = aes(x=Box
 ```
 
 
-############ FiX TEXT dou to results#################
 On this plot we check the correlation between genre type and the real release date (not Netflix release date) of the movies/series.
 we use the same fixed dataset from the previous plot - "surveys_fixed_no_NA_Genres"
 and also use year column which we create from `Release date` column
-We found out that on the last 20 years the biggest  increase is in Thriller, Drama, romance and comedy movies.
+We found out that on the last 20 years the biggest increase is in Comedy and after that in Drama, and Family movies.
 ```{r}
 # Sum of Genres per years
 surveys_one_genre_fixed_date <- surveys[!grepl(",", Boxoffice_fixed$Genre), ]
 surveys_one_genre_fixed_date <- surveys_one_genre_fixed_date %>% separate(`Release Date`, c("day", "month", "year"), sep = " ", convert = TRUE)
-ggplot(surveys_fixed_one_genre_no_NA_Genre,aes(x = year, color = Genre)) + 
+ggplot(surveys_one_genre_fixed_date,aes(x = year, color = Genre)) + 
      geom_line(stat = 'count') +
   labs( title = "Sum of  genre over the years",
   y = "Genres", x = "Years") + coord_cartesian(xlim = c(2000, 2022))
