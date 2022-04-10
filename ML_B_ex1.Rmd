@@ -63,8 +63,8 @@ ggplot(data = surveys) +
 ```
 
 
-Last thing to look at about the score, is if an high score cause more Awards?
-We saw that the answer is yes, but not complitly. Also movies/series that have <7 score almost have no rewards, the movies/series with the high scores have won much more rewards  per movies/series
+Last thing to look at about the score is the question - if an high score cause more Awards?
+We saw that the answer is yes, but not completely. Also movies/series which have <7 score almost have no rewards, the movies/series with the high scores have won much more rewards  per movies/series
 
 ```{r}
 
