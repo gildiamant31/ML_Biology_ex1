@@ -39,7 +39,8 @@ The results shows a significant different in the distribution of the 3 scores - 
 ```{r}
 
 ggplot(data = surveys) +
-  geom_histogram(mapping = aes(x = `IMDb Score`, fill="IMDb"), binwidth = 0.5) + geom_histogram(mapping = aes(x = surveys$`Rotten Tomatoes Score`/10, fill="Rotten Tomatoes Score"), binwidth = 0.5) + geom_histogram(mapping = aes(x = surveys$`Metacritic Score`/10, fill="Metacritic Score"), binwidth = 0.5) + scale_fill_manual(name = "", values = c("IMDb" = "steelblue", "Rotten Tomatoes Score" = "darkred", "Metacritic Score" = "blueviolet")) + theme_bw()
+  geom_histogram(mapping = aes(x = `IMDb Score`, fill="IMDb"), binwidth = 0.5) + geom_histogram(mapping = aes(x = surveys$`Rotten Tomatoes Score`/10, fill="Rotten Tomatoes Score"), binwidth = 0.5) + geom_histogram(mapping = aes(x = surveys$`Metacritic Score`/10, fill="Metacritic Score"), binwidth = 0.5) + scale_fill_manual(name = "", values = c("IMDb" = "steelblue", "Rotten Tomatoes Score" = "darkred", "Metacritic Score" = "blueviolet")) +
+  theme_bw()
 
 ```
 Following the distributions difference results, it was interesting to check if there is correlation in the different scores' values or they are incompatible in the score values which means the scores are totaly different. If it is, its can be bad news for the who that want to choose good movie/series to watch, but wont be able to trust score if everyone says different.
@@ -57,7 +58,8 @@ We were also interested whether high score movies are tend to be more popular an
 ```{r}
 
 ggplot(data = surveys) +
-  geom_point(mapping = aes(x = `IMDb Score`, y = `IMDb Votes`, color= `IMDb Votes`)) + theme_bw()
+  geom_point(mapping = aes(x = `IMDb Score`, y = `IMDb Votes`, color= `IMDb Votes`)) +
+  theme_bw()
 
 
 ```
@@ -132,13 +134,16 @@ Boxoffice_fixed$Boxoffice <- gsub("\\,", "", Boxoffice_fixed$Boxoffice)
 Boxoffice_fixed$Boxoffice <- as.numeric(Boxoffice_fixed$Boxoffice)
 # Movie vs Series on boxoffice in Billion dollars
 ggplot(Boxoffice_fixed,aes(`Series or Movie`,Boxoffice,fill = `Series or Movie`)) +
-   geom_col() + scale_y_continuous(labels = label_number(suffix = " B", scale = 1e-9))+ 
+   geom_col() + 
+  scale_y_continuous(labels = label_number(suffix = " B", scale = 1e-9)) + 
   labs(title = "Movie Vs Series by Revenues in Bilion USD",
    x = "Revenues (USD)",y = "Movie or Series",) + theme_bw() 
 
 
 Boxoffice_fixed_no_NA <- subset(Boxoffice_fixed, !is.na(Boxoffice))
-ggplot(Boxoffice_fixed_no_NA,aes(`Series or Movie`,fill=`Series or Movie`)) +  stat_count(geom = "bar") + theme_bw() + labs(title = "Counting Movie Vs Series")
+ggplot(Boxoffice_fixed_no_NA,aes(`Series or Movie`,fill=`Series or Movie`)) +  
+  stat_count(geom = "bar") + 
+  theme_bw() + labs(title = "Counting Movie Vs Series")
 ```
 
 In this plot we want to check the correlation between the genre type to revenues 
@@ -151,9 +156,9 @@ We want to emphasize the point that on this dataset there are more than 10,000 m
 ```{r}
 surveys_fixed_one_genre <- Boxoffice_fixed[!grepl(",", Boxoffice_fixed$Genre), ]
 surveys_fixed_one_genre_no_NA_Genre <- subset(surveys_fixed_one_genre, !is.na(Genre))
-surveys_fixed_one_genre_no_NA_Genre_Boxoffice<- subset(surveys_fixed_one_genre_no_NA_Genre, !is.na(Boxoffice))
+fixed_Genres_Boxoffice<- subset(surveys_fixed_one_genre_no_NA_Genre, !is.na(Boxoffice))
 # Revenues by Genres in Billion dollars 
-ggplot(data = surveys_fixed_one_genre_no_NA_Genre_Boxoffice ,mapping = aes(x=Boxoffice, y= Genre, fill = Genre)) +
+ggplot(data = fixed_Genres_Boxoffice ,mapping = aes(x=Boxoffice, y= Genre, fill = Genre)) +
   geom_col() + 
   scale_x_continuous(labels = label_number(suffix = "B", scale = 1e-9))+ 
   labs(title = "Compare Revenues of all Genres in Bilion USD",
@@ -168,8 +173,8 @@ We found out that on the last 20 years the biggest increase is in Comedy and aft
 ```{r}
 # Sum of Genres per years
 surveys_one_genre_fixed_date <- surveys[!grepl(",", Boxoffice_fixed$Genre), ]
-surveys_one_genre_fixed_date <- surveys_one_genre_fixed_date %>% separate(`Release Date`, c("day", "month", "year"), sep = " ", convert = TRUE)
-ggplot(surveys_one_genre_fixed_date,aes(x = year, color = Genre)) + 
+fixed_Genres <- surveys_one_genre_fixed_date %>% separate(`Release Date`, c("day", "month", "year"), sep = " ", convert = TRUE)
+ggplot(fixed_Genres,aes(x = year, color = Genre)) + 
      geom_line(stat = 'count') +
   labs( title = "Sum of  genre over the years",
   y = "Genres", x = "Years") + coord_cartesian(xlim = c(2000, 2022))
