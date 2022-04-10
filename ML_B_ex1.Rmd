@@ -8,12 +8,12 @@ output: pdf_document
 
 setup & configure of the plots (each plot present in different figure)
 ```{r setup, global_options, include=FALSE}
-knitr::opts_chunk$set(tidy.opts=list(width.cutoff=60), tidy=TRUE, echo = TRUE, message=FALSE, warning=FALSE, fig.width=8, fig.height=3)
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE, fig.width=8, fig.height=3)
 ```
 
 
 load all relevant libraries for using on EDA:
-```{r echo=FALSE}
+```{r}
 library(ggplot2) # load the ggplot2 library
 library(dplyr)
 library(tidyverse)
@@ -21,7 +21,7 @@ library(scales)
 ```
 
 import the dataset to a local variable called surveys:
-```{r echo=FALSE}
+```{r}
 surveys <- read_csv("netflix-rotten-tomatoes-metacritic-imdb.csv")
 ```
 
@@ -39,7 +39,18 @@ The results shows a significant different in the distribution of the 3 scores - 
 ```{r}
 
 ggplot(data = surveys) +
-  geom_histogram(mapping = aes(x = `IMDb Score`, fill="IMDb"), binwidth = 0.5) + geom_histogram(mapping = aes(x = surveys$`Rotten Tomatoes Score`/10, fill="Rotten Tomatoes Score"), binwidth = 0.5) + geom_histogram(mapping = aes(x = surveys$`Metacritic Score`/10, fill="Metacritic Score"), binwidth = 0.5) + scale_fill_manual(name = "", values = c("IMDb" = "steelblue", "Rotten Tomatoes Score" = "darkred", "Metacritic Score" = "blueviolet")) +
+  geom_histogram(mapping = aes(x = `IMDb Score`, 
+                               fill="IMDb"),
+                 binwidth = 0.5) + 
+  geom_histogram(mapping = aes(x = surveys$`Rotten Tomatoes Score`/10,
+                               fill="Rotten Tomatoes Score"),
+binwidth = 0.5) + 
+  geom_histogram(mapping = aes(x = surveys$`Metacritic Score`/10, 
+                                                                                                                                               fill="Metacritic Score"),
+                 binwidth = 0.5) + scale_fill_manual(name = "",
+                  values = c("IMDb" = "steelblue", 
+           "Rotten Tomatoes Score" = "darkred", 
+           "Metacritic Score" = "blueviolet")) +
   theme_bw()
 
 ```
@@ -48,7 +59,9 @@ But, the results below shows that there is a corraltion between the 3 scores, yo
 ```{r}
 surveys_noNA_Meta<-subset(surveys, !is.na(`Metacritic Score`))
 ggplot(data = surveys_noNA_Meta) +
-  geom_point(mapping = aes(x = `IMDb Score`, y = `Rotten Tomatoes Score`, color=`Metacritic Score`)) + theme_bw()
+  geom_point(mapping = aes(x = `IMDb Score`,
+                           y = `Rotten Tomatoes Score`, color=`Metacritic Score`)) + 
+  theme_bw()
 ```
 for the next parts, we continued with the IMDb score.
 
@@ -71,7 +84,8 @@ We saw that the answer is yes, but not completely. Also movies/series which have
 ```{r}
 
 ggplot(data = surveys) +
-  geom_point(mapping = aes(x = `IMDb Score`, y = `Awards Received`, color= `Awards Received`)) + theme_bw()
+  geom_point(mapping = aes(x = `IMDb Score`, y = `Awards Received`, color= `Awards Received`)) + 
+  theme_bw()
 
 ```
 
@@ -102,7 +116,10 @@ surveys_movies_fixed_runtime$Runtime[surveys_movies_fixed_runtime$Runtime == "> 
 surveys_movies_fixed_runtime$Runtime[surveys_movies_fixed_runtime$Runtime == "30-60 mins"] <- "0.7"
 surveys_movies_fixed_runtime$Runtime <- as.numeric(surveys_movies_fixed_runtime$Runtime)
 
-one_lan <- surveys_movies_fixed_runtime %>% filter(Languages=="English" | Languages=="Japanese" | Languages=="Korean" | Languages=="Spanish" | Languages=="Hindi" | Languages=="French" | Languages=="Italian")
+one_lan <- surveys_movies_fixed_runtime %>% filter(Languages=="English" | 
+                                                     Languages=="Japanese" | Languages=="Korean" | 
+                                                     Languages=="Spanish" | Languages=="Hindi" |
+Languages=="French" | Languages=="Italian")
 
 ggplot(data = one_lan, aes(x=Languages, y=Runtime, fill=Languages)) + geom_violin()+ geom_point()+
   theme_bw() +
@@ -173,7 +190,8 @@ We found out that on the last 20 years the biggest increase is in Comedy and aft
 ```{r}
 # Sum of Genres per years
 surveys_one_genre_fixed_date <- surveys[!grepl(",", Boxoffice_fixed$Genre), ]
-fixed_Genres <- surveys_one_genre_fixed_date %>% separate(`Release Date`, c("day", "month", "year"), sep = " ", convert = TRUE)
+fixed_Genres <- surveys_one_genre_fixed_date %>% separate(`Release Date`, 
+c("day", "month", "year"), sep = " ", convert = TRUE)
 ggplot(fixed_Genres,aes(x = year, color = Genre)) + 
      geom_line(stat = 'count') +
   labs( title = "Sum of  genre over the years",
