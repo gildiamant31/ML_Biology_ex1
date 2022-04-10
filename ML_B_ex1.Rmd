@@ -33,40 +33,45 @@ dim(surveys)
 names(surveys)  
 ```
 
-In the data, there are movie scores from three different sites - IMDb, Rotten Tomatoes and Metacritic.
+In the data, there are movie scores from three different sites - IMDb, Rotten Tomatoes and Metacritic, we were intersted in the difference of the ditribution of the 3 scores. we moved all the 3 scores to be in scale of 0-10, for the clarity of the comparsion.
+The results shows a significant different in the distribution of the 3 scores - while IMDb score is much centerd around ~6.5, the Rotten-Tomatoes score is widely distributed along all the score-range and the Metacritic-score have a distribution with propertis in the middle of the previous two.
 
 ```{r}
 
 ggplot(data = surveys) +
-  geom_histogram(mapping = aes(x = `IMDb Score`, fill="IMDb"), binwidth = 0.5) + geom_histogram(mapping = aes(x = surveys$`Rotten Tomatoes Score`/10, fill="Rotten Tomatoes Score"), binwidth = 0.5) + geom_histogram(mapping = aes(x = surveys$`Metacritic Score`/10, fill="Metacritic Score"), binwidth = 0.5) + scale_fill_manual(name = "", values = c("IMDb" = "steelblue", "Rotten Tomatoes Score" = "darkred", "Metacritic Score" = "blueviolet"))
+  geom_histogram(mapping = aes(x = `IMDb Score`, fill="IMDb"), binwidth = 0.5) + geom_histogram(mapping = aes(x = surveys$`Rotten Tomatoes Score`/10, fill="Rotten Tomatoes Score"), binwidth = 0.5) + geom_histogram(mapping = aes(x = surveys$`Metacritic Score`/10, fill="Metacritic Score"), binwidth = 0.5) + scale_fill_manual(name = "", values = c("IMDb" = "steelblue", "Rotten Tomatoes Score" = "darkred", "Metacritic Score" = "blueviolet")) + theme_bw()
 
 ```
-
-
-After  the relation between scores we wanted check whether high-score movies yield more revenues
-
-
+Following the distributions difference results, it was interesting to check if there is correlation in the different scores' values or they are incompatible in the score values which means the scores are totaly different. If it is, its can be bad news for the who that want to choose good movie/series to watch, but wont be able to trust score if everyone says different.
+But, the results below shows that there is a corraltion between the 3 scores, you can see that we have nice diagonal and at most of the movies the 3 scores are agreed.
 ```{r}
-
+surveys_noNA_Meta<-subset(surveys, !is.na(`Metacritic Score`))
+ggplot(data = surveys_noNA_Meta) +
+  geom_point(mapping = aes(x = `IMDb Score`, y = `Rotten Tomatoes Score`, color=`Metacritic Score`)) + theme_bw()
 ```
-
+for the next parts, we continued with the IMDb score.
 
 We were also interesed whether high score movies are tend to be more popular and therefore will have more votes
 
 
 ```{r}
 
+ggplot(data = surveys) +
+  geom_point(mapping = aes(x = `IMDb Score`, y = `IMDb Votes`, color= `IMDb Votes`)) + theme_bw()
+
+
 ```
 
 
 Last thing to look at about the score, is if an high score cause more Awards?
+We saw that the answer is yes, but not complitly. Also movies/series that have <7 score almost have no rewards, the movies/series with the high scores have won much more rewards  per movies/series
 
 ```{r}
 
+ggplot(data = surveys) +
+  geom_point(mapping = aes(x = `IMDb Score`, y = `Awards Received`, color= `Awards Received`)) + theme_bw()
+
 ```
-
-
-
 
 
 We was interest to check the distribution of length of movies
@@ -118,7 +123,7 @@ In this plot , We wanted to check the differences in revenues (Boxoffice) betwee
 we manipulate the Boxoffice-data for having the ability to use it as a number in the graph.   
 We found out that movies are much more successful and have much more revenues:
 All movies in Netflix have together more than 150B dollars of revenue, in the other side all series have less then 50B dollars together.
-We also cheked the number of movies and Series and got that while there is more movies then series, the difference in the revenues is not explained only by that
+We also checked the number of movies and Series with data about their  revenues and got that  there is much more movies then series, and the difference in the sum of revenues is maybe explained by that.
 ```{r}
 # convert the income to integer
 Boxoffice_fixed <- surveys
@@ -133,13 +138,14 @@ ggplot(Boxoffice_fixed,aes(`Series or Movie`,Boxoffice,fill = `Series or Movie`)
 
 
 Boxoffice_fixed_no_NA <- subset(Boxoffice_fixed, !is.na(Boxoffice))
-ggplot(Boxoffice_fixed,aes(`Series or Movie`,fill=`Series or Movie`)) +  stat_count(geom = "bar") + theme_bw() + labs(title = "Counting Movie Vs Series")
+ggplot(Boxoffice_fixed_no_NA,aes(`Series or Movie`,fill=`Series or Movie`)) +  stat_count(geom = "bar") + theme_bw() + labs(title = "Counting Movie Vs Series")
 ```
 
 In this plot we want to check the correlation between the genre type to revenues 
 in Billion dollars.
 We used the same fixed dataset from the previous plot ("Boxoffice_fixed") with numeric values in Boxoffice column, we also edit the column of Genres - on many rows there were multiple genre in one row, so we keep only the rows with one Genre only.
 We also remove all rows with N/A values in genres and on Boxoffice.
+The remain table has ~400 row which we count as a represented sample.
 We saw in the plot that according to the dataset That Comedy genre has the biggest revenues.
 We want to emphasize the point that on this dataset there are more than 10,000 movies without any data on their revenues at all (have N/A values)  
 ```{r}
