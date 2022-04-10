@@ -1,5 +1,5 @@
 ---
-title: "ML_B_ex1"
+title: "ML_B_ex1 - Netflix Dataset"
 author: "Gil Diamant 314978412, Yishay Shlezinger 208438119 & Itamar Twersky 311587489"
 date: "08 4 2022"
 output: pdf_document
@@ -51,7 +51,7 @@ ggplot(data = surveys_noNA_Meta) +
 ```
 for the next parts, we continued with the IMDb score.
 
-We were also interesed whether high score movies are tend to be more popular and therefore will have more votes
+We were also interested whether high score movies are tend to be more popular and therefore will have more votes
 
 
 ```{r}
