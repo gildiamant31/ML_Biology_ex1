@@ -1,0 +1,318 @@
+---
+title: "Analysis of Wisconsin Breast Cancer Diagnostic dataset"
+author: "Romi Golder Kabeli"
+date: "April 5, 2021"
+output: html_document
+---
+
+Below is the analysis of Wisconsin Breast Cancer Diagnostic dataset. Data is taken from http://archive.ics.uci.edu/ml and includes measurements from digitized images of fine-needle aspirate (biopsy) of a breast mass.
+
+The breast cancer data includes 569 examples of cancer biopsies, each with 32 features. One feature is an identification number, another is the cancer diagnosis, and 30 are numeric-valued laboratory measurements. The diagnosis is coded as M to indicate malignant or B to indicate benign. The 30 numeric measurements comprise the mean, standard error, and worst (that is, largest) value for 10 different characteristics of the digitized cell nuclei.
+
+These include:
+. Radius
+. Texture
+. Perimeter
+. Area
+. Smoothness
+. Compactness
+. Concavity
+. Concave points
+. Symmetry
+. Fractal dimension
+
+First, we will load the libraries we need and read the file:
+
+```{r setup}
+library(ggplot2)
+
+wbcd <- read.csv("wisc_bc_data.csv", stringsAsFactors = FALSE)
+
+# randomize the data, to make sure things are interesting
+wbcd <- wbcd[sample(1:nrow(wbcd)),]
+```
+
+As we've seen before, a good first step is to look at the data:
+
+```{r}
+str(wbcd)
+```
+
+The first variable is an identifier, and because it's not relevant to our analysis, we will drop it. In medical data, often the identifiers are arbitrary, as patient confidentiality must be preserved. 
+
+We'll also start looking at the variable we want to predict, diagnosis:
+
+```{r}
+# remove id column
+wbcd <- wbcd[-1]
+
+# look at diagnosis distribution
+table(wbcd$diagnosis)
+```
+
+Looks like there is more benign diagnosis than malignant, we'll make a note of that. 
+Lets change the values of the diagnosis variable to be more informative, while also transforming it to a factor variable:
+
+```{r}
+wbcd$diagnosis <- factor(wbcd$diagnosis, levels = c("B", "M"), labels = c("Benign", "Malignant"))
+
+# percentage of each diagnosis
+round(prop.table(table(wbcd$diagnosis))*100, digits = 1)
+```
+
+As we saw, the remaining 30 features are 3 sets of 10 measurements (mean, se, worst). Lets look at 3 such measurements:
+
+```{r}
+summary(wbcd[c("radius_mean", "area_mean", "smoothness_mean")])
+```
+
+Since we want to use KNN, we have to make sure the range of values of each parameter is similar. Since area and smoothness are several factors away from each other, we'll have to normalize our data to make sure our classifier will work. 
+Lets create a simple normalization function (min/max normalization):
+
+```{r}
+# create the min/max normalization function:
+normalize <- function(x) {
+return ((x - min(x)) / (max(x) - min(x)))
+}
+
+# test our function
+normalize(c(1, 2, 3, 4, 5))
+normalize(c(10, 20, 30, 40, 50))
+```
+
+Use the normalization function on our data, and make sure it worked:
+
+```{r}
+wbcd_n <- as.data.frame(lapply(wbcd[2:31], normalize))
+
+summary(wbcd_n$area_mean)
+```
+
+The next step is to create a training set and a test set, and to store the labels in a different vector to be used later. We usually want to divide our data into 80%, 20% test, but we can always try a ratio of 85-15 or even 90-10 
+and see if results improved. 
+
+```{r}
+# create train set
+wbcd_train <- wbcd_n[1:455, ]
+# create test set
+wbcd_test <- wbcd_n[456:569, ]
+# labels of train set
+wbcd_train_labels <- wbcd[1:455, 1]
+# labels of test set
+wbcd_test_labels <- wbcd[456:569, 1]
+```
+
+
+```{r}
+library(class) # make sure you install the package first with install.packages("class")
+```
+
+And finally, we are ready to run our algorithm. We'll start with K of 21, the square root of 455 and also an odd number, reducing the change of a tie vote.
+
+```{r}
+wbcd_test_pred <- knn(train = wbcd_train, test = wbcd_test, cl = wbcd_train_labels, k=21)
+```
+
+So, how well did we do? Since the knn function returns a factor vector of the predicted values, we'll compare that vector with the true labels we saved in advance. We'll do the comparison with the CrossTable function, from the gmodels package we'll load: 
+
+```{r}
+library(gmodels)
+CrossTable(x = wbcd_test_labels, y = wbcd_test_pred, prop.chisq=FALSE)
+```
+
+In the above table we see that all of the benign were predicted correctly, and 36 out of the 39 malignant 
+were too. 3 malignant labels were mistaken for being benign.
+
+Lets see if we can improve our results. First, lets try z-score standardization instead of normalization:
+
+```{r}
+# z-score normalization
+wbcd_z <- as.data.frame(scale(wbcd[-1]))
+
+summary(wbcd_z$area_mean)
+```
+
+We'll quickly repeat the previous steps (divide the data into train and test, classify, and compare the results to the true values):
+
+```{r}
+wbcd_train_z <- wbcd_z[1:455, ]
+wbcd_test_z <- wbcd_z[456:569, ]
+wbcd_train_labels_z <- wbcd[1:455, 1]
+wbcd_test_labels_z <- wbcd[456:569, 1]
+wbcd_test_pred_z <- knn(train = wbcd_train_z, test = wbcd_test_z, cl = wbcd_train_labels_z, k=21)
+CrossTable(x = wbcd_test_labels_z, y = wbcd_test_pred_z, prop.chisq=FALSE)
+```
+
+No improvement it seems. What about a different value of K?
+
+```{r}
+wbcd_test_pred_k15 <- knn(train = wbcd_train, test = wbcd_test, cl = wbcd_train_labels, k=15)
+wbcd_test_pred_k25 <- knn(train = wbcd_train, test = wbcd_test, cl = wbcd_train_labels, k=25)
+wbcd_test_pred_k1 <- knn(train = wbcd_train, test = wbcd_test, cl = wbcd_train_labels, k=1)
+
+CrossTable(x = wbcd_test_labels, y = wbcd_test_pred_k15, prop.chisq=FALSE)
+CrossTable(x = wbcd_test_labels, y = wbcd_test_pred_k25, prop.chisq=FALSE)
+CrossTable(x = wbcd_test_labels, y = wbcd_test_pred_k1, prop.chisq=FALSE)
+
+```
+
+Changing the K didn't improve the results. 
+That said the results were good from the beginning so improving them is hard. 
+
+
+Another KNN example with the Iris data, taken from https://www.datacamp.com/community/tutorials/machine-learning-in-r:
+
+## EDA on Iris using ggvis package
+
+```{r}
+str(iris)
+
+library(ggvis)
+
+iris %>% ggvis(~Sepal.Length, ~Sepal.Width, fill = ~Species) %>% layer_points()
+
+iris %>% ggvis(~Petal.Length, ~Petal.Width, fill = ~Species) %>% layer_points()
+
+# Overall correlation `Petal.Length` and `Petal.Width`
+cor(iris$Petal.Length, iris$Petal.Width)
+
+# Return values of `iris` levels 
+x=levels(iris$Species)
+
+# Print Setosa correlation matrix
+print(x[1])
+cor(iris[iris$Species==x[1],1:4])
+
+# Print Versicolor correlation matrix
+print(x[2])
+cor(iris[iris$Species==x[2],1:4])
+
+# Print Virginica correlation matrix
+print(x[3])
+cor(iris[iris$Species==x[3],1:4])
+
+# Division of `Species`
+table(iris$Species) 
+
+# Division of `Species` (percent)
+round(prop.table(table(iris$Species)) * 100, digits = 1)
+```
+
+### KNN using 'class' package
+
+```{r}
+library(class)
+
+# Build your own min/max normalization function
+normalize <- function(x) {
+num <- x - min(x)
+denom <- max(x) - min(x)
+return (num/denom)
+}
+
+# Normalize the `iris` data
+iris_norm <- as.data.frame(lapply(iris[1:4], normalize))
+
+# Summarize `iris_norm`
+summary(iris_norm)
+
+# create test and train sets
+
+# create an index with the desired proportions
+ind <- sample(2, nrow(iris), replace=TRUE, prob=c(0.8, 0.2))
+
+# Compose training set
+iris.training <- iris[ind==1, 1:4]
+
+# Inspect training set
+head(iris.training)
+
+# Compose test set
+iris.test <- iris[ind==2, 1:4]
+
+# Inspect test set
+head(iris.test)
+
+# Store the correct labels:
+
+# Compose `iris` training labels
+iris.trainLabels <- iris[ind==1,5]
+
+# Inspect result
+print(iris.trainLabels)
+
+# Compose `iris` test labels
+iris.testLabels <- iris[ind==2, 5]
+
+# Inspect result
+print(iris.testLabels)
+```
+
+Finally, we are ready to prepare the model itself:
+
+```{r}
+# Build the model
+iris_pred <- knn(train = iris.training, test = iris.test, cl = iris.trainLabels, k=3)
+
+# Inspect `iris_pred`
+iris_pred
+```
+
+Evaluating the model:
+
+```{r}
+library(gmodels)
+
+# Put `iris.testLabels` in a data frame
+irisTestLabels <- data.frame(iris.testLabels)
+
+# Merge `iris_pred` and `iris.testLabels` 
+merge <- data.frame(iris_pred, iris.testLabels)
+
+# Specify column names for `merge`
+names(merge) <- c("Predicted Species", "Observed Species")
+
+# Inspect `merge` 
+merge
+
+CrossTable(x = iris.testLabels, y = iris_pred, prop.chisq=FALSE)
+```
+
+### KNN using 'caret' package
+
+And finally, using the Caret package to make things much easier:
+
+```{r}
+
+library(caret)
+# Create index to split based on labels  
+index <- createDataPartition(iris$Species, p=0.8, list=FALSE)
+
+# Subset training set with index
+iris.training <- iris[index,]
+
+# Subset test set with index
+iris.test <- iris[-index,]
+
+# Overview of algos supported by caret
+names(getModelInfo())
+
+# Train a model
+model_knn <- train(iris.training[, 1:4], iris.training[, 5], method='knn')
+
+model_cart <- train(iris.training[, 1:4], iris.training[, 5], method='rpart2')
+```
+
+Prediction using the model we created:
+
+```{r}
+# Predict the labels of the test set
+predictions<-predict.train(object=model_knn,iris.test[,1:4], type="raw")
+
+# Evaluate the predictions
+table(predictions)
+
+# Confusion matrix 
+confusionMatrix(predictions,iris.test[,5])
+```
+
