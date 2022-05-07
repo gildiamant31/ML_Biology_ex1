@@ -22,7 +22,7 @@ library(scales)
 
 import the dataset to a local variable called surveys:
 ```{r}
-surveys <- read_csv("netflix-rotten-tomatoes-metacritic-imdb.csv")
+surveys <- read_csv("seeds.csv")
 ```
 
 Firstly, lets observe the properties of the data for getting ideas for EDA -
@@ -30,8 +30,135 @@ Firstly, lets observe the properties of the data for getting ideas for EDA -
 ```{r}
 dim(surveys)
 
-names(surveys)  
+names(surveys)
+str(surveys)
 ```
+Since we want to use KNN, we have to make sure the range of values of each parameter is similar. Since area and smoothness are several factors away from each other, we'll have to normalize our data to make sure our classifier will work. 
+Lets create a simple normalization function (min/max normalization):
+
+```{r}
+# create the min/max normalization function:
+normalize <- function(x) {
+return ((x - min(x)) / (max(x) - min(x)))
+}
+
+# test our function
+normalize(c(1, 2, 3, 4, 5))
+normalize(c(10, 20, 30, 40, 50))
+```
+
+Use the normalization function on our data, and make sure it worked:
+
+```{r}
+# we choose all colunms excep the label's colunm (8).
+surveys_n <- as.data.frame(lapply(surveys[1:7], normalize))
+
+summary(surveys_n$Area)
+```
+
+The next step is to create a training set and a test set, and to store the labels in a different vector to be used later. We usually want to divide our data into 80%, 20% test, but we can always try a ratio of 85-15 or even 90-10 
+and see if results improved. 
+
+```{r}
+### we need to shuffle the data first!!!
+
+# create train set
+surveys_train <- surveys_n[1:170, ]
+# create test set
+surveys_test <- surveys_n[171:199, ]
+# labels of train set
+surveys_train_labels <- surveys[1:170, 8]
+
+# זה לא עובד אם לא עושים טרנספוז והופכים את המימדים
+surveys_train_labels <- t(surveys_train_labels)
+dim(surveys_train)
+dim(surveys_test)
+dim(surveys_train_labels)
+# labels of test set
+surveys_test_labels <- surveys[171:199, 8]
+
+
+# זה לא עובד אם לא עושים טרנספוז והופכים את המימדים
+surveys_test_labels <- t(surveys_test_labels)
+```
+
+```{r}
+library(class) # make sure you install the package first with install.packages("class")
+```
+
+And finally, we are ready to run our algorithm. We'll start with K of 21, the square root of 455 and also an odd number, reducing the change of a tie vote.
+
+```{r}
+surveys_test_pred <- knn(train = surveys_train, test = surveys_test, surveys_train_labels , k=21)
+```
+
+So, how well did we do? Since the knn function returns a factor vector of the predicted values, we'll compare that vector with the true labels we saved in advance. We'll do the comparison with the CrossTable function, from the gmodels package we'll load: 
+
+```{r}
+library(gmodels)
+CrossTable(x = surveys_test_labels, y = surveys_test_pred, prop.chisq=FALSE)
+```
+
+
+
+
+In the above table we see that all of the benign were predicted correctly, and 36 out of the 39 malignant 
+were too. 3 malignant labels were mistaken for being benign.
+
+Lets see if we can improve our results. First, lets try z-score standardization instead of normalization:
+
+```{r}
+# z-score normalization
+surveys_z <- as.data.frame(scale(surveys[1:7]))
+
+summary(surveys_z$Area)
+```
+
+We'll quickly repeat the previous steps (divide the data into train and test, classify, and compare the results to the true values):
+
+```{r}
+surveys_train_z <- surveys_z[1:170, ]
+surveys_test_z <- surveys_z[171:199, ]
+surveys_train_labels_z <- surveys[1:170, 8]
+surveys_test_labels_z <- surveys[171:199, 8]
+# again transpose the data.
+surveys_train_labels_z <- t(surveys_train_labels_z)
+surveys_test_labels_z <- t(surveys_test_labels_z)
+surveys_test_pred_z <- knn(train = surveys_train_z, test = surveys_test_z, cl = surveys_train_labels_z, k=3)
+CrossTable(x = surveys_test_labels_z, y = surveys_test_pred_z, prop.chisq=FALSE)
+```
+
+No improvement it seems. What about a different value of K?
+
+```{r}
+surveys_test_pred_k15 <- knn(train = surveys_train, test = surveys_test, surveys_train_labels , k=15)
+surveys_test_pred_k25 <- knn(train = surveys_train, test = surveys_test, surveys_train_labels , k=25)
+surveys_test_pred_k1 <- knn(train = surveys_train, test = surveys_test, surveys_train_labels , k=1)
+
+CrossTable(x = surveys_test_labels, y = surveys_test_pred_k15, prop.chisq=FALSE)
+CrossTable(x = surveys_test_labels, y = surveys_test_pred_k25, prop.chisq=FALSE)
+CrossTable(x = surveys_test_labels, y = surveys_test_pred_k1, prop.chisq=FALSE)
+
+```
+
+
+
+
+
+
+כל החלק הזה זה מהתרגיל הקודם
+השארתי את הגרפים אם נרצה להשתמש בדברים דומים בהמשך
+
+
+
+
+
+
+
+
+
+
+
 
 In the data, there are movie scores from three different sites - IMDb, Rotten Tomatoes and Metacritic, we were intersted in the difference of the ditribution of the 3 scores. we moved all the 3 scores to be in scale of 0-10, for the clarity of the comparsion.
 The results shows a significant different in the distribution of the 3 scores - while IMDb score is much centerd around ~6.5, the Rotten-Tomatoes score is widely distributed along all the score-range and the Metacritic-score have a distribution with propertis in the middle of the previous two.
