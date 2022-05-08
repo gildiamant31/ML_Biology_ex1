@@ -18,6 +18,10 @@ library(ggplot2) # load the ggplot2 library
 library(dplyr)
 library(tidyverse)
 library(scales)
+library(gmodels)
+library(C50)
+# Consider setting a seed for reproducible results
+set.seed(1234)
 ```
 
 import the dataset to a local variable called surveys:
@@ -33,6 +37,10 @@ dim(surveys)
 names(surveys)
 str(surveys)
 ```
+
+knn part:
+
+
 Since we want to use KNN, we have to make sure the range of values of each parameter is similar. Since area and smoothness are several factors away from each other, we'll have to normalize our data to make sure our classifier will work. 
 Lets create a simple normalization function (min/max normalization):
 
@@ -143,6 +151,119 @@ CrossTable(x = surveys_test_labels, y = surveys_test_pred_k1, prop.chisq=FALSE)
 
 
 
+
+DT part:
+
+Convert the class ("default") to a factor, as it is required by the C50 package.
+
+```{r}
+# convert credit from character variable to factor
+surveys$Type<-as.factor(surveys$Type)
+```
+
+Lets split into training and test sets:
+
+```{r}
+# sample 199 observations out of the total 400
+train_sample <- sample(400, 170)
+
+str(train_sample) # the resulting train_sample object is a vector of 800 random integers
+
+# split into train/test
+surveys_train <- surveys[train_sample, ]
+surveys_test <- surveys[-train_sample, ]
+
+# check that we got about 30% defaulted loans in each dataset:
+prop.table(table(surveys_train$Type))
+prop.table(table(surveys_test$Type))
+```
+
+The 17th column of the dataset is the default class variable, so we need to exclude it from the training data frame, but supply it as the target factor (label) vector for classification:
+
+```{r}
+# apply model in training data (17th column is the label to be predicted)
+surveys_model <- C5.0(surveys_train[-8], surveys_train$Type)
+
+surveys_model
+```
+
+The preceding text shows some simple facts about the tree, including the function
+call that generated it, the number of features (labeled predictors), and examples
+(labeled samples) used to grow the tree. Also listed is the tree size of 59, which
+indicates that the tree is 59 decisions deep - quite a bit larger than the example
+trees we've considered so far!
+
+
+Next we'll look at the summary of the model. 
+Note that the first three lines could be represented in plain language as:
+
+1. If the checking account balance is unknown or greater than 200 DM, and other_credit
+is none/store then classify as "not likely to default."
+2. Otherwise, the checking account balance is less than zero DM or between
+one and 200 DM, and the credit history is perfect or very good, and housing
+is rent or other, then classify as "likely to default."
+
+```{r}
+summary(surveys_model)
+```
+
+The numbers in parentheses indicate the number of examples meeting the criteria for
+that decision, and the number incorrectly classified by the decision. 
+For instance, on the first line, 326/34 indicates that of the 326 examples reaching the decision, 34 were incorrectly classified as not likely to default. In other words, 34 applicants actually defaulted, in spite of the model's prediction.
+
+As we now know, it is very important to evaluate our model performance:
+
+```{r}
+# apply model on test data
+surveys_pred <- predict(surveys_model, surveys_test)
+
+CrossTable(surveys_test$Type, surveys_pred, prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE, dnn = c('actual Type', 'predicted Type'))
+```
+
+The performance here is somewhat worse than its performance on the
+training data, but not unexpected, given that a model's performance is often worse
+on unseen data. Also note that there are relatively many mistakes where the model predicted not a default, when in practice the loaner did default. 
+Unfortunately, this type of error is a potentially costly mistake, as the bank loses money on each default. 
+Let's see if we can improve the result with a bit more effort.
+
+### Adaptive Boosting
+
+So, our model is not that great. Let's try and improve it next. C5.0 includes a feature called adaptive boosting. This is a process in which many decision trees are built and the trees vote on the best class for each example. 
+
+The C5.0() function makes it easy to add boosting to our C5.0 decision tree. We
+simply need to add an additional trials parameter indicating the number of
+separate decision trees to use in the boosted team. The trials parameter sets an
+upper limit; the algorithm will stop adding trees if it recognizes that additional 
+trials do not seem to be improving the accuracy. 
+We'll start with 10 trials, a number that has become the de facto standard, as research 
+suggests that this reduces error rates on test data by about 25 percent:
+
+```{r}
+# boosting with 10 trials (on training)
+surveys_boost10 <- C5.0(surveys_train[-8], surveys_train$Type, trials = 10)
+
+surveys_boost10
+
+summary(surveys_boost10)
+```
+
+The classifier made 25 mistakes on 800 training examples for an error rate of
+3.1% percent. This is quite an improvement over the previous training error rate
+before adding boosting! However, it remains to be seen whether we see
+a similar improvement on the test data. Let's take a look:
+
+```{r}
+# boosting on test data
+surveys_boost_pred10 <- predict(surveys_boost10, surveys_test)
+
+CrossTable(surveys_test$Type, surveys_boost_pred10,
+prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE,
+dnn = c('actual default', 'predicted default'))
+```
+
+
+בחלק של עצי החלטה לא הצלחתי להשתמש בשגיאות כמו שהיא עשתה
+מוזמנים לנסות
 
 
 
