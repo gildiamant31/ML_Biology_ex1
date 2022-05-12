@@ -27,6 +27,9 @@ set.seed(1234)
 import the dataset to a local variable called surveys:
 ```{r}
 surveys <- read_csv("seeds.csv")
+
+# shuffle the data by rows
+surveys= surveys[sample(1:nrow(surveys)), ]
 ```
 
 Firstly, lets observe the properties of the data for getting ideas for EDA -
