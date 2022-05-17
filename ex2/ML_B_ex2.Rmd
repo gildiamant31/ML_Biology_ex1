@@ -69,6 +69,19 @@ theme_moma <- function(base_size = 12, base_family = "Helvetica") {
 ```
 # TODO ##########
 # graphs of values istead of str ?????
+Because our data contains many columns (7, the 8th is the classification), we need a way to visualize most of the complexity represented in all dimensions in just two or three dimensions. Fortunately, that is exactly what dimension reduction does. Here, we apply a simple dimension reduction technique called principal component analysis (PCA) to all 7 numerical variables(the features) in the data set. 
+* Important to mention that before doing any dimensional reduction, it is important to preprocess your data- in this case our data has only numeric values. 
+
+```{r}
+# Preform PCA on our data
+prcomp_seeds <- prcomp(seeds[, 1:7])
+pca_seeds <- data.frame(
+  PC1 = prcomp_seeds$x[, 1],
+  PC2 = prcomp_seeds$x[, 2],
+  Type = seeds$Type
+)
+```
+
 Firstly, lets observe the properties of the data:
 
 ```{r}
@@ -76,7 +89,7 @@ Firstly, lets observe the properties of the data:
 str(seeds)
 #### בחרתי פה עמודות ספציפיות רק כדי להראות את ההפרדה של התיוגים.
 #plot the types according two specific features (can be changed), which pick randomaly
-ggplot(seeds, aes(y=Kernel.Width, x = Kernel.Length, col=Type)) +
+ggplot(pca_seeds, aes(y=PC1, x = PC2, col=Type)) +
   geom_point(size=5, alpha = 0.2) + 
   theme_moma() +
   theme(legend.position = "bottom") +
@@ -95,7 +108,7 @@ The type is also numeric.
 last thing to look at the distribution of the labels:
 ```{r}
 # show 'type' column as table
-table(seeds$Type)
+table(pca_seeds$Type)
 ```
 We can see that the data is almost evenly distributed, and we should preserve it when spiltin the data.
 
@@ -106,7 +119,7 @@ The type is numeric, and we wish to make it 'factor' for being categorical.
 
 ```{r}
 # convert Type from numeric variable to factor
-seeds$Type<-as.factor(seeds$Type)
+pca_seeds$Type<-as.factor(pca_seeds$Type)
 ```
 
 
@@ -114,7 +127,7 @@ Lets shuffle the data so it's order wont affect our model
 
 ```{r}
 # shuffle the data by rows
-seeds= seeds[sample(1:nrow(seeds)), ]
+pca_seeds= pca_seeds[sample(1:nrow(pca_seeds)), ]
 ```
 
 
@@ -122,9 +135,8 @@ we saw above that the range of value is different between properties.
 Because we don't want that it will affect the importance of each property, we standardize the data with z-score.
 ```{r}
 # z-score standardization
-seeds_z <- as.data.frame(scale(seeds[1:7]))
+seeds_z <- as.data.frame(scale(pca_seeds[1:2]))
 
-summary(seeds_z$Area)
 ```
 
 
@@ -165,9 +177,9 @@ seeds_train_z <- seeds_z[1:160, ]
 # create test set
 seeds_test_z <- seeds_z[161:199, ]
 # labels of train set
-seeds_train_labels <- seeds$Type[1:160]
+seeds_train_labels <- pca_seeds$Type[1:160]
 # labels of test set
-seeds_test_labels <- seeds$Type[161:199]
+seeds_test_labels <- pca_seeds$Type[161:199]
 
 ```
 
@@ -177,13 +189,13 @@ Lets plot the train set and the test set:
 ##### Visualize the Split #####
 
 # again here we chose the same features (columns on the dataset).
-c1 <- ggplot(seeds_train_z, aes(y=Kernel.Width, x = Kernel.Length, col=seeds_train_labels)) +
+c1 <- ggplot(seeds_train_z, aes(y=PC1, x = PC2, col=seeds_train_labels)) +
   geom_jitter(size=5, alpha = 0.2) + 
   theme_moma() +
   theme(legend.position = "bottom") +
   ggtitle("Train Set")
  
-c2 <- ggplot(seeds_test_z, aes(y=Kernel.Width, x = Kernel.Length, col=seeds_test_labels)) +
+c2 <- ggplot(seeds_test_z, aes(y=PC1, x = PC2, col=seeds_test_labels)) +
   geom_jitter(size=5, alpha = 0.2) + 
   theme_moma() +
   theme(legend.position = "bottom") +
@@ -215,7 +227,7 @@ test_v_1 <- data.frame(seeds_test_z,seeds_test_pred_z,seeds_test_labels) #knn_mo
 test_v_1$Correct <- test_v_1$seeds_test_labels == test_v_1$seeds_test_pred_z #This will return TRUE or FALSE.
 
 # again here we also chose the same feature for present it on the plot
-ggplot(test_v_1, aes(y=Kernel.Width, x = Kernel.Length, col=seeds_test_labels, label = Correct)) +
+ggplot(test_v_1, aes(y=PC1, x = PC2, col=seeds_test_labels, label = Correct)) +
   geom_point(size=5, alpha = 0.2) + 
   theme_moma() +
   theme(legend.position = "bottom") +
@@ -226,7 +238,8 @@ ggplot(test_v_1, aes(y=Kernel.Width, x = Kernel.Length, col=seeds_test_labels, l
 
 #TODO update text down
 In the above table we see that almost all of the seeds were predicted correctly.
-There were two mistakes, one of type 2 and one of type 3 were mistakenly predicted as type 1.
+There were four mistakes, two of type 2 and one of type 3 were mistakenly predicted as type 1.
+one of type 1 were mistakenly predicted as type 2.
 The all other predictions were correct.
 
 Lets try min-max normalization instead of  z-score standardization :
@@ -244,9 +257,8 @@ Use the normalization function on our data, and make sure it worked:
 
 ```{r}
 # we choose all colunms excep the label's colunm (8).
-seeds_n <- as.data.frame(lapply(seeds[1:7], normalize))
-# show summary to see that its worked
-summary(seeds_n$Area)
+seeds_n <- as.data.frame(lapply(pca_seeds[1:2], normalize))
+
 ```
 
 repeat the previous steps (divide the data into train and test, classify, and compare the results to the true values):
@@ -282,8 +294,8 @@ plot(k_options, type="b", xlab="K- Value",ylab="Accuracy level", main = "knn mod
 
 As we saw, we can use KNN to as multi-class classifier algorithm.
 We saw that it better use z-score normalization instead of min-max.
-You can see on the last plot, that the best K hyper-parameters to use are 
-in range of 2 -28.
+You can see on the last plot, that the best K hyper-parameter to use for this  
+dataset is 5 with the biggest accuracy.
 
 
 after seeing the nice results of the knn, we wanted to test a model thatgives us an informative model in which we can learn from the output model.
@@ -327,7 +339,7 @@ summary(seeds_model)
 
 The numbers in parentheses indicate the number of examples meeting the criteria for
 that decision, and the number incorrectly classified by the decision. 
-For instance, on the first line, 54/1 indicates that of the 54 examples reaching the decision, 1 was incorrectly classified as not likely to type. In other words, 1 seed actually typed, in spite of the model's prediction.
+For instance, on the first line, 62/6 indicates that of the 62 examples reaching the decision, 6 was incorrectly classified as not likely to type. In other words, 6 seed actually typed, in spite of the model's prediction.
 
 As we now know, it is very important to evaluate our model performance:
 
@@ -338,12 +350,12 @@ seeds_pred <- predict(seeds_model, seeds_n_test)
 CrossTable(seeds_test_labels, seeds_pred, prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE, dnn = c('actual Type', 'predicted Type'))
 
 #DT_Model merge
-test_merged1 <- data.frame(seeds_n_test,seeds_boost_pred10,seeds_test_labels) #pred10 contains only predicted value
+test_merged1 <- data.frame(seeds_n_test,seeds_pred,seeds_test_labels) #pred contains only predicted value
 test_merged1$Correct <- test_merged1$seeds_test_labels == 
-  test_merged1$seeds_boost_pred10 #This will return TRUE or FALSE.
+  test_merged1$seeds_pred #This will return TRUE or FALSE.
 
 # again here we also chose the same feature for present it on the plot
-ggplot(test_merged1, aes(y=Kernel.Width, x = Kernel.Length, col=seeds_test_labels, label = Correct)) +
+ggplot(test_merged1, aes(y=PC1, x = PC2, col=seeds_test_labels, label = Correct)) +
   geom_point(size=5, alpha = 0.2) + 
   theme_moma() +
   theme(legend.position = "bottom") +
@@ -393,14 +405,14 @@ test_merged2$Correct <- test_merged2$seeds_test_labels ==
   test_merged2$seeds_boost_pred10 #This will return TRUE or FALSE.
 
 # again here we also chose the same feature for present it on the plot
-ggplot(test_merged2, aes(y=Kernel.Width, x = Kernel.Length, col=seeds_test_labels, label = Correct)) +
+ggplot(test_merged2, aes(y=PC1, x = PC2, col=seeds_test_labels, label = Correct)) +
   geom_point(size=5, alpha = 0.2) + 
   theme_moma() +
   theme(legend.position = "bottom") +
   ggtitle("Improved DT Prediction Results") + 
   geom_text(size = 3, show.legend = FALSE)
 ```
-we got small improvment in the results with only 2/39 mistaken classification 
+we got small improvment in the results with only 3/39 mistaken classification 
 
 
 לעשות פה גרף שמשווה בין המודלים
