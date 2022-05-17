@@ -1,30 +1,12 @@
 ---
-title: "ML_B_ex2 - Netflix Dataset"
+title: "ML_B_ex2 - Seeds Dataset"
 author: "Gil Diamant 314978412, Yishay Shlezinger 208438119 & Itamar Twersky 311587489"
-date: "05 05 2022"
+date: "17 05 2022"
 output: pdf_document
 ---
-###################################################################################################################
 On this report we compared between two supervised machine learning algorithms:
 KNN & Decision Tree.
 We used each algorithm on 'seeds' datase which has multicalss labels, we try to classify the type of each seed on this dataset while using all features of each one (7 features).
-###################################################################################################################
-
-
-
-instructions:
-1. the focus of the report should be performance of the two algorithms, improving them and how they compare to each other.
-2. Your conclusion should include a summary of what you did, which model is better and which hyper-parameters you recommend
-3. Your PDF should include code cells, but hide cell outputs that aren’t useful for the report. 
-4. Basic Data Analysis (to get familiar with your data).
-5. At least 4 graphs, one of which must be to visualize the performance of the algorithms.
-
-
-
-#TODO maybe graph for feature variation/corraltion?
-#TODO maybe feature selection?
-
-setup & configure of the plots (each plot present in different figure)
 ```{r setup, global_options, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE, fig.width=8, fig.height=3)
 ```
@@ -39,19 +21,11 @@ library(scales)
 library(gmodels)
 library(C50)
 library(vip)        # for variable importance plots
-
 #setting a seed for reproducible results
 set.seed(1234)
 ```
 
-## Have a look at the data
-
-read data to a local variable called seeds:
-```{r}
-seeds <- read_csv("seeds.csv")
-```
-
-create theme for all knn plots
+create theme for all prediction results plots:
 
 ```{r}
 ##### Theme Moma #####
@@ -67,8 +41,14 @@ theme_moma <- function(base_size = 12, base_family = "Helvetica") {
   )
 }
 ```
-# TODO ##########
-# graphs of values istead of str ?????
+
+## Have a look at the data
+
+read data to a local variable called seeds:
+```{r}
+seeds <- read_csv("seeds.csv")
+```
+
 Because our data contains many columns (7, the 8th is the classification), we need a way to visualize most of the complexity represented in all dimensions in just two or three dimensions. Fortunately, that is exactly what dimension reduction does. Here, we apply a simple dimension reduction technique called principal component analysis (PCA) to all 7 numerical variables(the features) in the data set. 
 * Important to mention that before doing any dimensional reduction, it is important to preprocess your data- in this case our data has only numeric values. 
 
@@ -142,31 +122,8 @@ seeds_z <- as.data.frame(scale(pca_seeds[1:2]))
 ## KNN:
 The k-nearest neighbors (KNN) algorithm is a simple, easy-to-implement supervised machine learning algorithm that can be used to solve both classification and regression problems.
 The KNN algorithm assumes that similar things exist in close proximity. In other words, similar things are near to each other.
-The KNN Algorithm
-
-1. Load the data
-
-2. Initialize K to your chosen number of neighbors
-
-3. For each example in the data
-
-  3.1 Calculate the distance between the query example and the current example from the data.
-
-  3.2 Add the distance and the index of the example to an ordered collection
-
-4. Sort the ordered collection of distances and indices from smallest to largest (in ascending order) by the distances
-
-5. Pick the first K entries from the sorted collection
-
-6. Get the labels of the selected K entries
-
-7. If regression, return the mean of the K labels
-
-8. If classification, return the mode of the K labels
 
 lets try it on out data:
-
-
 The next step is to create a training set and a test set, and to store the labels in a different vector to be used later. We divide our data into 80%, 20% test,.
 if the result wont be great we will try change it and see if results improved. 
 
@@ -215,15 +172,17 @@ And finally, we are ready to run our algorithm. We'll start with K=2 as arbitrar
 seeds_test_pred_z <- knn(train = seeds_train_z, test = seeds_test_z, cl = seeds_train_labels, k=2)
 ```
 
-So, how well did we do? Since the knn function returns a factor vector of the predicted values, we'll compare that vector with the true labels we saved in advance. We'll do the comparison with the CrossTable function, from the gmodels package we'll load: 
+Since the knn function returns a factor vector of the predicted values, we'll compare that vector with the true labels we saved in advance. We'll do the comparison with the CrossTable function, from the gmodels package we'll load: 
 
 ```{r}
 library(gmodels)
 CrossTable(x = seeds_test_labels, y = seeds_test_pred_z, prop.chisq=FALSE)
 
 #KNN_Model merge
-test_v_1 <- data.frame(seeds_test_z,seeds_test_pred_z,seeds_test_labels) #knn_model contains only preicted value
-test_v_1$Correct <- test_v_1$seeds_test_labels == test_v_1$seeds_test_pred_z #This will return TRUE or FALSE.
+#knn_model contains only preicted value
+test_v_1 <- data.frame(seeds_test_z,seeds_test_pred_z,seeds_test_labels)
+#This will return TRUE or FALSE.
+test_v_1$Correct <- test_v_1$seeds_test_labels == test_v_1$seeds_test_pred_z
 
 # again here we also plot the types according two specific columns after PCA
 ggplot(test_v_1, aes(y=PC1, x = PC2, col=seeds_test_labels, label = Correct)) +
@@ -232,10 +191,8 @@ ggplot(test_v_1, aes(y=PC1, x = PC2, col=seeds_test_labels, label = Correct)) +
   theme(legend.position = "bottom") +
   ggtitle("KNN Prediction Results") + 
   geom_text(size = 3, show.legend = FALSE)
+# True on each point means that it is correct prediction, FALSE means wrong prediction
 ```
-# TODO graph of preformence
-
-#TODO update text down
 In the above table we see that almost all of the seeds were predicted correctly.
 There were four mistakes, two of type 2 and one of type 3 were mistakenly predicted as type 1.
 one of type 1 were mistakenly predicted as type 2.
@@ -273,8 +230,7 @@ seeds_test_pred <- knn(train = seeds_n_train, test = seeds_n_test, cl = seeds_tr
 # check performance
 a<-CrossTable(x = seeds_test_labels, y = seeds_test_pred, prop.chisq=FALSE)
 ```
-Here we can see a worse predictions than before, another mistake has been added and now we have 3 prediction mistakes.  
-
+Here we can see a worse predictions than before, another mistake has been added and now we have 5 prediction mistakes.  
 
 Lets try different values of 'k' to see if we can do better:
 because our dataset is not big, we can try many different 'k' in reasonable runing time.
@@ -291,21 +247,26 @@ k_options[i] <- 100 * sum(seeds_test_labels == knn_pred)/NROW(seeds_test_labels)
 plot(k_options, type="b", xlab="K- Value",ylab="Accuracy level", main = "knn model accuracy for different k values")
 ```
 
+Use KNN with k=5 got only one mistake as we can see here :
+
+```{r}
+knn_pred_k5 <- knn(train=seeds_n_train, test=seeds_n_test, cl=seeds_train_labels, k=5)
+a<-CrossTable(x = seeds_test_labels, y = knn_pred_k5, prop.chisq=FALSE)
+```
+
 As we saw, we can use KNN to as multi-class classifier algorithm.
 We saw that it better use z-score normalization instead of min-max.
 You can see on the last plot, that the best K hyper-parameter to use for this  
 dataset is 5 with the biggest accuracy.
 
 
-after seeing the nice results of the knn, we wanted to test a model thatgives us an informative model in which we can learn from the output model.
+after seeing the nice results of the knn, we wanted to test a model that gives us an informative model in which we can learn from the output model.
 We choose Decision-Tree model for our next model
 
-#  Decision-Tree classifer:
+##  Decision-Tree classifer:
 
 Decision Tree algorithm belongs to the family of supervised learning algorithms. Unlike other supervised learning algorithms, the decision tree algorithm can be used for solving regression and classification problems too.
-
 The goal of using a Decision Tree is to create a training model that can use to predict the class or value of the target variable by learning simple decision rules inferred from prior data(training data).
-
 In Decision Trees, for predicting a class label for a record we start from the root of the tree. We compare the values of the root attribute with the record’s attribute. On the basis of comparison, we follow the branch corresponding to that value and jump to the next node.
 
 we already have training and test sets, normalized and shuffled, lets check the almost even distribution between labeles was preserve:
@@ -316,10 +277,6 @@ prop.table(table(seeds_test_labels))
 As shown above the distribution in the train is mostly preserved, which is importanet for efficient learning of our model.
 The test is small so it is make sense that the distribution is not completely preserved by randomly choosing. Because its only used for testing our model, so its less matter if the distribution is not completely preserved
 
-
-
-The 8th column of the dataset is the default class variable, so we need to exclude it from the training data frame, but supply it as the target factor (label) vector for classification:
-
 ```{r}
 # apply model in training data (8th column is the label to be predicted)
 seeds_model <- C5.0(seeds_n_train, seeds_train_labels)
@@ -327,8 +284,6 @@ seeds_model <- C5.0(seeds_n_train, seeds_train_labels)
 seeds_model %>% vip()
 ```
 Our tree is very short, according to the small number of the seeds features
-
-
 
 Next we'll look at the summary of the model. 
 
@@ -346,15 +301,18 @@ As we now know, it is very important to evaluate our model performance:
 # apply model on test data
 seeds_pred <- predict(seeds_model, seeds_n_test)
 
-CrossTable(seeds_test_labels, seeds_pred, prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE, dnn = c('actual Type', 'predicted Type'))
+CrossTable(seeds_test_labels, seeds_pred, prop.chisq = FALSE,
+           prop.c = FALSE, prop.r = FALSE, 
+           dnn = c('actual Type', 'predicted Type'))
 
 #DT_Model merge
-test_merged1 <- data.frame(seeds_n_test,seeds_pred,seeds_test_labels) #pred contains only predicted value
+#pred contains only predicted value
+test_merged1 <- data.frame(seeds_n_test,seeds_pred,seeds_test_labels)
 test_merged1$Correct <- test_merged1$seeds_test_labels == 
   test_merged1$seeds_pred #This will return TRUE or FALSE.
 
 # again here we also plot the types according two specific columns after PCA
-ggplot(test_merged1, aes(y=PC1, x = PC2, col=seeds_test_labels, label = Correct)) +
+c1 <-ggplot(test_merged1, aes(y=PC1, x = PC2, col=seeds_test_labels, label = Correct)) +
   geom_point(size=5, alpha = 0.2) + 
   theme_moma() +
   theme(legend.position = "bottom") +
@@ -385,7 +343,8 @@ seeds_boost10 <- C5.0(seeds_n_train, seeds_train_labels, trials = 10)
 
 seeds_boost10 %>% vip()
 
-summary(seeds_boost10)
+# remove from here the summary - irrelevant and long
+#summary(seeds_boost10)
 ```
 
 Let's take a look about the predictions results after boosting:
@@ -399,214 +358,85 @@ prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE,
 dnn = c('actual default', 'predicted default'))
 
 #DT_Model merge
-test_merged2 <- data.frame(seeds_n_test,seeds_boost_pred10,seeds_test_labels) #pred10 contains only predicted value
+#pred10 contains only predicted value
+test_merged2 <- data.frame(seeds_n_test,seeds_boost_pred10,seeds_test_labels)
 test_merged2$Correct <- test_merged2$seeds_test_labels == 
   test_merged2$seeds_boost_pred10 #This will return TRUE or FALSE.
 
 # again here we also plot the types according two specific columns after PCA
-ggplot(test_merged2, aes(y=PC1, x = PC2, col=seeds_test_labels, label = Correct)) +
+c2 <-ggplot(test_merged2, aes(y=PC1, x = PC2, col=seeds_test_labels, label = Correct)) +
   geom_point(size=5, alpha = 0.2) + 
   theme_moma() +
   theme(legend.position = "bottom") +
   ggtitle("Improved DT Prediction Results") + 
   geom_text(size = 3, show.legend = FALSE)
 ```
-we got small improvment in the results with only 3/39 mistaken classification 
+we got small improvement in the results with only 4/39 mistaken classification 
 
 
-לעשות פה גרף שמשווה בין המודלים
-
-לכתוב סיכום ומסקנות
-
-"Your conclusion should include a summary of what you did, which model is better and which hyperparameters you recommend"
-
-
-
-
-
-
-גילי:
-
-
-כל החלק הזה זה מהתרגיל הקודם
-השארתי את הגרפים אם נרצה להשתמש בדברים דומים בהמשך
-
-
-
-
-
-
-
-
-
-
-
-
-In the data, there are movie scores from three different sites - IMDb, Rotten Tomatoes and Metacritic, we were intersted in the difference of the ditribution of the 3 scores. we moved all the 3 scores to be in scale of 0-10, for the clarity of the comparsion.
-The results shows a significant different in the distribution of the 3 scores - while IMDb score is much centerd around ~6.5, the Rotten-Tomatoes score is widely distributed along all the score-range and the Metacritic-score have a distribution with propertis in the middle of the previous two.
+plot two type of DT predictions:
 
 ```{r}
-
-ggplot(data = surveys) +
-  geom_histogram(mapping = aes(x = `IMDb Score`, 
-                               fill="IMDb"),
-                 binwidth = 0.5) + 
-  geom_histogram(mapping = aes(x = surveys$`Rotten Tomatoes Score`/10,
-                               fill="Rotten Tomatoes Score"),
-binwidth = 0.5) + 
-  geom_histogram(mapping = aes(x = surveys$`Metacritic Score`/10, 
-                                                                                                                                               fill="Metacritic Score"),
-                 binwidth = 0.5) + scale_fill_manual(name = "",
-                  values = c("IMDb" = "steelblue", 
-           "Rotten Tomatoes Score" = "darkred", 
-           "Metacritic Score" = "blueviolet")) +
-  theme_bw()
-
-```
-Following the distributions difference results, it was interesting to check if there is correlation in the different scores' values or they are incompatible in the score values which means the scores are totaly different. If it is, its can be bad news for the who that want to choose good movie/series to watch, but wont be able to trust score if everyone says different.
-But, the results below shows that there is a corraltion between the 3 scores, you can see that we have nice diagonal and at most of the movies the 3 scores are agreed.
-```{r}
-surveys_noNA_Meta<-subset(surveys, !is.na(`Metacritic Score`))
-ggplot(data = surveys_noNA_Meta) +
-  geom_point(mapping = aes(x = `IMDb Score`,
-                           y = `Rotten Tomatoes Score`, color=`Metacritic Score`)) + 
-  theme_bw()
-```
-for the next parts, we continued with the IMDb score.
-
-We were also interested whether high score movies are tend to be more popular and therefore will have more votes
-
-
-```{r}
-
-ggplot(data = surveys) +
-  geom_point(mapping = aes(x = `IMDb Score`, y = `IMDb Votes`, color= `IMDb Votes`)) +
-  theme_bw()
-
-
+grid.arrange(c1,c2, nrow = 1)
+# True on each point means that it is correct prediction, FALSE means wrong prediction
 ```
 
+##Comparing between the two models:
 
-Last thing to look at about the score is the question - if an high score cause more Awards?
-We saw that the answer is yes, but not completely. Also movies/series which have <7 score almost have no rewards, the movies/series with the high scores have won much more rewards  per movies/series
-
+compare the best models prediction results of both algorithms:
 ```{r}
+#KNN_Model merge
 
-ggplot(data = surveys) +
-  geom_point(mapping = aes(x = `IMDb Score`, y = `Awards Received`, color= `Awards Received`)) + 
-  theme_bw()
+#knn_model contains only preicted value
+test_v_1 <- data.frame(seeds_n_test,knn_pred_k5,seeds_test_labels)
+#This will return TRUE or FALSE.
+test_v_1$Correct <- test_v_1$seeds_test_labels == test_v_1$knn_pred_k5 
 
+# again here we also plot the types according two specific columns after PCA
+c1 <-ggplot(test_v_1, aes(y=PC1, x = PC2, col=seeds_test_labels, label = Correct)) +
+  geom_point(size=5, alpha = 0.2) + 
+  theme_moma() +
+  theme(legend.position = "bottom") +
+  ggtitle("KNN Prediction Results") + 
+  geom_text(size = 3, show.legend = FALSE)
+c2 <-ggplot(test_merged2, aes(y=PC1, x = PC2, col=seeds_test_labels, label = Correct)) +
+  geom_point(size=5, alpha = 0.2) + 
+  theme_moma() +
+  theme(legend.position = "bottom") +
+  ggtitle("Improved DT Prediction Results") + 
+  geom_text(size = 3, show.legend = FALSE)
+# plot both in one line
+grid.arrange(c1,c2, nrow = 1)
+# True on each point means that it is correct prediction, FALSE means wrong prediction
 ```
 
-
-We was interest to check the distribution of length of movies
-
+compare the accuracy of each algorithm best model:
 ```{r}
-surveys_movies <- surveys %>% filter(`Series or Movie` == 'Movie')
-ggplot(data = surveys_movies , color = Runtime) + 
-  geom_bar(mapping = aes(x = Runtime, fill = Runtime))+
-  labs( title = "Sum per runtime")
-```
+# get accuracy of DT boost prediction
+DT_acc <- 100 * sum(seeds_test_labels == seeds_boost_pred10)/NROW(seeds_test_labels)
+# get accuracy of knn_k5 prediction
+KNN_acc <- 100 * sum(seeds_test_labels == knn_pred_k5)/NROW(seeds_test_labels)
 
-We assume that movies with a certain language are have properties that represent the culture the language belong to. 
-One property that can be related to a culture is the movie length. check the correlation between the movie's language and the movie's time length. 
-we looked for the top 5 popular languages, and check for them.
-From results we conclude interesting findings:
-- the movies in languages of countries with more western culture (English,French,Spanish,Italian) tend to be with length of 1-2 hours while movies with other languages are have also significant piece of longer(>2) movies.
-that may point out that the western culture are tend to be less patient to see a long movie
-```{r}
-surveys_movies %>% group_by(Languages) %>%  tally(sort = TRUE) %>% head(10)
-
-surveys_movies_fixed_runtime <- surveys_movies
-
-surveys_movies_fixed_runtime$Runtime[surveys_movies_fixed_runtime$Runtime == "1-2 hour"] <- "1.5"
-surveys_movies_fixed_runtime$Runtime[surveys_movies_fixed_runtime$Runtime == "< 30 minutes"] <- "0.3"
-surveys_movies_fixed_runtime$Runtime[surveys_movies_fixed_runtime$Runtime == "> 2 hrs"] <- "2.5"
-surveys_movies_fixed_runtime$Runtime[surveys_movies_fixed_runtime$Runtime == "30-60 mins"] <- "0.7"
-surveys_movies_fixed_runtime$Runtime <- as.numeric(surveys_movies_fixed_runtime$Runtime)
-
-one_lan <- surveys_movies_fixed_runtime %>% filter(Languages=="English" | 
-                                                     Languages=="Japanese" | Languages=="Korean" | 
-                                                     Languages=="Spanish" | Languages=="Hindi" |
-Languages=="French" | Languages=="Italian")
-
-ggplot(data = one_lan, aes(x=Languages, y=Runtime, fill=Languages)) + geom_violin()+ geom_point()+
-  theme_bw() +
-  labs(title = "Counting movies of a certain length per Language")
-
-```
-
-Hidden gem score is a measurement for an putative unknown good movie. We wanted to explore whether the unknown good movies is also counted as good movies in the general IMDB score.
-The results of those two plots show us that there is movies with mid gem-score but with very low IMDB score which means there are probably bad movies. but the movies with the high gem score are mostly have very good IMDB-score
-```{r}
-
-ggplot(data = surveys,  aes(y =`IMDb Score` , x= `Hidden Gem Score`, color=`IMDb Score`)) +
-  geom_point() + theme_classic() +
-  labs(title = "IMDb Score vs Hidden Gem Score")
-```
-
-
-
-In this plot , We wanted to check the differences in revenues (Boxoffice) between movies & series.
-we manipulate the Boxoffice-data for having the ability to use it as a number in the graph.   
-We found out that movies are much more successful and have much more revenues:
-All movies in Netflix have together more than 150B dollars of revenue, in the other side all series have less then 50B dollars together.
-We also checked the number of movies and Series with data about their  revenues and got that  there is much more movies then series, and the difference in the sum of revenues is maybe explained by that.
-```{r}
-# convert the income to integer
-Boxoffice_fixed <- surveys
-Boxoffice_fixed$Boxoffice <- gsub("\\$", "", surveys$Boxoffice)
-Boxoffice_fixed$Boxoffice <- gsub("\\,", "", Boxoffice_fixed$Boxoffice)
-Boxoffice_fixed$Boxoffice <- as.numeric(Boxoffice_fixed$Boxoffice)
-# Movie vs Series on boxoffice in Billion dollars
-ggplot(Boxoffice_fixed,aes(`Series or Movie`,Boxoffice,fill = `Series or Movie`)) +
-   geom_col() + 
-  scale_y_continuous(labels = label_number(suffix = " B", scale = 1e-9)) + 
-  labs(title = "Movie Vs Series by Revenues in Bilion USD",
-   x = "Revenues (USD)",y = "Movie or Series",) + theme_bw() 
-
-
-Boxoffice_fixed_no_NA <- subset(Boxoffice_fixed, !is.na(Boxoffice))
-ggplot(Boxoffice_fixed_no_NA,aes(`Series or Movie`,fill=`Series or Movie`)) +  
-  stat_count(geom = "bar") + 
-  theme_bw() + labs(title = "Counting Movie Vs Series")
-```
-
-In this plot we want to check the correlation between the genre type to revenues 
-in Billion dollars.
-We used the same fixed dataset from the previous plot ("Boxoffice_fixed") with numeric values in Boxoffice column, we also edit the column of Genres - on many rows there were multiple genre in one row, so we keep only the rows with one Genre only.
-We also remove all rows with N/A values in genres and on Boxoffice.
-The remain table has ~400 row which we count as a represented sample.
-We saw in the plot that according to the dataset That Comedy genre has the biggest revenues.
-We want to emphasize the point that on this dataset there are more than 10,000 movies without any data on their revenues at all (have N/A values)  
-```{r}
-surveys_fixed_one_genre <- Boxoffice_fixed[!grepl(",", Boxoffice_fixed$Genre), ]
-surveys_fixed_one_genre_no_NA_Genre <- subset(surveys_fixed_one_genre, !is.na(Genre))
-fixed_Genres_Boxoffice<- subset(surveys_fixed_one_genre_no_NA_Genre, !is.na(Boxoffice))
-# Revenues by Genres in Billion dollars 
-ggplot(data = fixed_Genres_Boxoffice ,mapping = aes(x=Boxoffice, y= Genre, fill = Genre)) +
+# create data frame with the accuracy to plot it.
+Algo <- c("DT","KNN")
+Accuracy <- c(DT_acc,KNN_acc)
+df <- data.frame(Algo, Accuracy)
+ggplot(data = df ,mapping = aes(x=Algo, y= Accuracy, fill = Accuracy)) +
   geom_col() + 
-  scale_x_continuous(labels = label_number(suffix = "B", scale = 1e-9))+ 
-  labs(title = "Compare Revenues of all Genres in Bilion USD",
-  y = "Genres", x = "Revenues (USD)")
+  labs(title = "Compare DT accuracy to KNN accuracy",
+  y = "Accuracy", x = "Algorithm")
 ```
 
+##Summary & Conclusions :
 
-On this plot we check the correlation between genre type and the real release date (not Netflix release date) of the movies/series.
-we use the same fixed dataset from the previous plot - "surveys_fixed_no_NA_Genres"
-and also use year column which we create from `Release date` column
-We found out that on the last 20 years the biggest increase is in Comedy and after that in Drama, and Family movies.
-```{r}
-# Sum of Genres per years
-surveys_one_genre_fixed_date <- surveys[!grepl(",", Boxoffice_fixed$Genre), ]
-fixed_Genres <- surveys_one_genre_fixed_date %>% separate(`Release Date`, 
-c("day", "month", "year"), sep = " ", convert = TRUE)
-ggplot(fixed_Genres,aes(x = year, color = Genre)) + 
-     geom_line(stat = 'count') +
-  labs( title = "Sum of  genre over the years",
-  y = "Genres", x = "Years") + coord_cartesian(xlim = c(2000, 2022))
+After we analyzed and run different algorithms on our data we assume that we got very good and similar classification results for each algorithm with and without any improvement as a result of the small size of our dataset.
 
-```
+first we use PCA to reduce our data dimension.
+After that we run knn and got better predictions with z-score normalization (we chose K=2).
+The best prediction result that we got was over 96 accuracy in predictions, while using hyper-parameter K=5(while using min-max normalization).
 
+The next algorithm was DT we use it on our dataset after normalization process(min-max) without improvement and got 5 mistakes.
+After boost improvement (10 trails of the algorithm) on DT algorithm we got only 4 mistakes in algo's predictions.
+We used the default Decision Tree and its default hyper-parameters.
 
-
+After comparing two algorithms results (see the two comparing plots) we assume that KNN with K=5 as hyper-parameter is the the better algorithm to choose while using this data.
