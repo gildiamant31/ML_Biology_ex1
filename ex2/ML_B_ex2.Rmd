@@ -50,6 +50,23 @@ read data to a local variable called seeds:
 ```{r}
 seeds <- read_csv("seeds.csv")
 ```
+
+create theme for all knn plots
+
+```{r}
+##### Theme Moma #####
+theme_moma <- function(base_size = 12, base_family = "Helvetica") {
+  theme(
+    plot.background = element_rect(fill = "#F7F6ED"),
+    legend.key = element_rect(fill = "#F7F6ED"),
+    legend.background = element_rect(fill = "#F7F6ED"),
+    panel.background = element_rect(fill = "#F7F6ED"),
+    panel.border = element_rect(colour = "black", fill = NA, linetype = "dashed"),
+    panel.grid.minor = element_line(colour = "#7F7F7F", linetype = "dotted"),
+    panel.grid.major = element_line(colour = "#7F7F7F", linetype = "dotted")
+  )
+}
+```
 # TODO ##########
 # graphs of values istead of str ?????
 Firstly, lets observe the properties of the data:
@@ -57,6 +74,14 @@ Firstly, lets observe the properties of the data:
 ```{r}
 #show data as str
 str(seeds)
+#### בחרתי פה עמודות ספציפיות רק כדי להראות את ההפרדה של התיוגים.
+#plot the types according two specific features (can be changed), which pick randomaly
+ggplot(seeds, aes(y=Kernel.Width, x = Kernel.Length, col=Type)) +
+  geom_point(size=5, alpha = 0.2) + 
+  theme_moma() +
+  theme(legend.position = "bottom") +
+  ggtitle("seeds Dataset")
+
 ```
 Our data is about wheat seeds, its have observations on 199 wheat seeds with 8 variables.
 Every wheat seed is categorized with type of 1/2/3 as type of wheat seed.
@@ -147,6 +172,27 @@ seeds_test_labels <- seeds$Type[161:199]
 ```
 
 
+Lets plot the train set and the test set:
+```{r}
+##### Visualize the Split #####
+
+# again here we chose the same features (columns on the dataset).
+c1 <- ggplot(seeds_train_z, aes(y=Kernel.Width, x = Kernel.Length, col=seeds_train_labels)) +
+  geom_jitter(size=5, alpha = 0.2) + 
+  theme_moma() +
+  theme(legend.position = "bottom") +
+  ggtitle("Train Set")
+ 
+c2 <- ggplot(seeds_test_z, aes(y=Kernel.Width, x = Kernel.Length, col=seeds_test_labels)) +
+  geom_jitter(size=5, alpha = 0.2) + 
+  theme_moma() +
+  theme(legend.position = "bottom") +
+  ggtitle("Test Set")
+ 
+grid.arrange(c1,c2, nrow = 1)
+```
+
+
 'class' package for knn algorithm.
 ```{r}
 library(class) 
@@ -164,6 +210,17 @@ So, how well did we do? Since the knn function returns a factor vector of the pr
 library(gmodels)
 CrossTable(x = seeds_test_labels, y = seeds_test_pred_z, prop.chisq=FALSE)
 
+#KNN_Model merge
+test_v_1 <- data.frame(seeds_test_z,seeds_test_pred_z,seeds_test_labels) #knn_model contains only preicted value
+test_v_1$Correct <- test_v_1$seeds_test_labels == test_v_1$seeds_test_pred_z #This will return TRUE or FALSE.
+
+# again here we also chose the same feature for present it on the plot
+ggplot(test_v_1, aes(y=Kernel.Width, x = Kernel.Length, col=seeds_test_labels, label = Correct)) +
+  geom_point(size=5, alpha = 0.2) + 
+  theme_moma() +
+  theme(legend.position = "bottom") +
+  ggtitle("KNN Prediction Results") + 
+  geom_text(size = 3, show.legend = FALSE)
 ```
 # TODO graph of preformence
 
@@ -279,6 +336,19 @@ As we now know, it is very important to evaluate our model performance:
 seeds_pred <- predict(seeds_model, seeds_n_test)
 
 CrossTable(seeds_test_labels, seeds_pred, prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE, dnn = c('actual Type', 'predicted Type'))
+
+#DT_Model merge
+test_merged1 <- data.frame(seeds_n_test,seeds_boost_pred10,seeds_test_labels) #pred10 contains only predicted value
+test_merged1$Correct <- test_merged1$seeds_test_labels == 
+  test_merged1$seeds_boost_pred10 #This will return TRUE or FALSE.
+
+# again here we also chose the same feature for present it on the plot
+ggplot(test_merged1, aes(y=Kernel.Width, x = Kernel.Length, col=seeds_test_labels, label = Correct)) +
+  geom_point(size=5, alpha = 0.2) + 
+  theme_moma() +
+  theme(legend.position = "bottom") +
+  ggtitle("DT Prediction Results") + 
+  geom_text(size = 3, show.legend = FALSE)
 ```
 
 The performance here is a bit worse than its performance on the
@@ -316,6 +386,19 @@ seeds_boost_pred10 <- predict(seeds_boost10, seeds_n_test)
 CrossTable(seeds_test_labels, seeds_boost_pred10,
 prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE,
 dnn = c('actual default', 'predicted default'))
+
+#DT_Model merge
+test_merged2 <- data.frame(seeds_n_test,seeds_boost_pred10,seeds_test_labels) #pred10 contains only predicted value
+test_merged2$Correct <- test_merged2$seeds_test_labels == 
+  test_merged2$seeds_boost_pred10 #This will return TRUE or FALSE.
+
+# again here we also chose the same feature for present it on the plot
+ggplot(test_merged2, aes(y=Kernel.Width, x = Kernel.Length, col=seeds_test_labels, label = Correct)) +
+  geom_point(size=5, alpha = 0.2) + 
+  theme_moma() +
+  theme(legend.position = "bottom") +
+  ggtitle("Improved DT Prediction Results") + 
+  geom_text(size = 3, show.legend = FALSE)
 ```
 we got small improvment in the results with only 2/39 mistaken classification 
 
@@ -328,75 +411,10 @@ we got small improvment in the results with only 2/39 mistaken classification
 
 
 
-איתמר: ניסיתי מה שהיא עשתה בתרגול הבא וזה לא עובד לי
-לדעתי לוותר
-
-```{r}
-library(tidymodels) # for the rsample package, along with the rest of tidymodels
-library(modeldata)  # for the cells data
-library(vip)        # for variable importance plots
-```
-
-Another way to improve the performance of our models is by changing the parameters we provide them with.
-```{r}
-# defining the parameters for the decision tree
-tune_spec <- 
-  decision_tree(
-    cost_complexity = tune(), # to control the size of the tree
-    tree_depth = tune()
-  ) %>% 
-  set_engine("rpart") %>% 
-  set_mode("classification")
-
-#tune_spec
-```
-
-```{r}
-# create 5 'datasets' with different combinations
-tree_grid <- grid_regular(cost_complexity(), 
-                          tree_depth(),
-                          levels = 3)
-
-tree_grid
-
-tree_grid %>% 
-  count(tree_depth)
-
-set.seed(234)
-seeds_folds <- vfold_cv(seeds_n_train) # create the actual cross-validation folds
-```
-
-
-## Model tuning with a grid
-
-```{r}
-set.seed(345)
-# define the workflow
-tree_wf <- workflow() %>%
-  add_model(tune_spec) %>%
-  add_formula(class ~ .)
-
-# update and train workflow with grids
-tree_res <- 
-  tree_wf %>% 
-  tune_grid(
-    resamples = seeds_folds,
-    grid = tree_grid
-    )
-
-tree_res
-
-tree_res %>% 
-  collect_metrics()
-```
 
 
 
 גילי:
-
-בחלק של עצי החלטה לא הצלחתי להשתמש בשגיאות כמו שהיא עשתה
-מוזמנים לנסות
-
 
 
 כל החלק הזה זה מהתרגיל הקודם
