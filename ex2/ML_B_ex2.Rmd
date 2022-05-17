@@ -87,8 +87,7 @@ Firstly, lets observe the properties of the data:
 ```{r}
 #show data as str
 str(seeds)
-#### בחרתי פה עמודות ספציפיות רק כדי להראות את ההפרדה של התיוגים.
-#plot the types according two specific features (can be changed), which pick randomaly
+# plot the types according two specific columns after PCA
 ggplot(pca_seeds, aes(y=PC1, x = PC2, col=Type)) +
   geom_point(size=5, alpha = 0.2) + 
   theme_moma() +
@@ -188,7 +187,7 @@ Lets plot the train set and the test set:
 ```{r}
 ##### Visualize the Split #####
 
-# again here we chose the same features (columns on the dataset).
+# again plot the types according two specific columns after PCA
 c1 <- ggplot(seeds_train_z, aes(y=PC1, x = PC2, col=seeds_train_labels)) +
   geom_jitter(size=5, alpha = 0.2) + 
   theme_moma() +
@@ -226,7 +225,7 @@ CrossTable(x = seeds_test_labels, y = seeds_test_pred_z, prop.chisq=FALSE)
 test_v_1 <- data.frame(seeds_test_z,seeds_test_pred_z,seeds_test_labels) #knn_model contains only preicted value
 test_v_1$Correct <- test_v_1$seeds_test_labels == test_v_1$seeds_test_pred_z #This will return TRUE or FALSE.
 
-# again here we also chose the same feature for present it on the plot
+# again here we also plot the types according two specific columns after PCA
 ggplot(test_v_1, aes(y=PC1, x = PC2, col=seeds_test_labels, label = Correct)) +
   geom_point(size=5, alpha = 0.2) + 
   theme_moma() +
@@ -354,7 +353,7 @@ test_merged1 <- data.frame(seeds_n_test,seeds_pred,seeds_test_labels) #pred cont
 test_merged1$Correct <- test_merged1$seeds_test_labels == 
   test_merged1$seeds_pred #This will return TRUE or FALSE.
 
-# again here we also chose the same feature for present it on the plot
+# again here we also plot the types according two specific columns after PCA
 ggplot(test_merged1, aes(y=PC1, x = PC2, col=seeds_test_labels, label = Correct)) +
   geom_point(size=5, alpha = 0.2) + 
   theme_moma() +
@@ -404,7 +403,7 @@ test_merged2 <- data.frame(seeds_n_test,seeds_boost_pred10,seeds_test_labels) #p
 test_merged2$Correct <- test_merged2$seeds_test_labels == 
   test_merged2$seeds_boost_pred10 #This will return TRUE or FALSE.
 
-# again here we also chose the same feature for present it on the plot
+# again here we also plot the types according two specific columns after PCA
 ggplot(test_merged2, aes(y=PC1, x = PC2, col=seeds_test_labels, label = Correct)) +
   geom_point(size=5, alpha = 0.2) + 
   theme_moma() +
