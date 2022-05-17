@@ -4,15 +4,23 @@ author: "Gil Diamant 314978412, Yishay Shlezinger 208438119 & Itamar Twersky 311
 date: "05 05 2022"
 output: pdf_document
 ---
-########################################################################################################################
+###################################################################################################################
+On this report we compared between two supervised machine learning algorithms:
+KNN & Decision Tree.
+We used each algorithm on 'seeds' datase which has multicalss labels, we try to classify the type of each seed on this dataset while using all features of each one (7 features).
+###################################################################################################################
+
+
+
 instructions:
 1. the focus of the report should be performance of the two algorithms, improving them and how they compare to each other.
-2. Your conclusion should include a summary of what you did, which model is better and which hyperparameters you recommend
+2. Your conclusion should include a summary of what you did, which model is better and which hyper-parameters you recommend
 3. Your PDF should include code cells, but hide cell outputs that aren’t useful for the report. 
 4. Basic Data Analysis (to get familiar with your data).
 5. At least 4 graphs, one of which must be to visualize the performance of the algorithms.
 
-########################################################################################################################
+
+
 #TODO maybe graph for feature variation/corraltion?
 #TODO maybe feature selection?
 
@@ -95,9 +103,31 @@ summary(seeds_z$Area)
 ```
 
 
-## knn:
-# TODO לחפור עוד על KNN
-knn is a non-linear clasiffier.
+## KNN:
+The k-nearest neighbors (KNN) algorithm is a simple, easy-to-implement supervised machine learning algorithm that can be used to solve both classification and regression problems.
+The KNN algorithm assumes that similar things exist in close proximity. In other words, similar things are near to each other.
+The KNN Algorithm
+
+1. Load the data
+
+2. Initialize K to your chosen number of neighbors
+
+3. For each example in the data
+
+  3.1 Calculate the distance between the query example and the current example from the data.
+
+  3.2 Add the distance and the index of the example to an ordered collection
+
+4. Sort the ordered collection of distances and indices from smallest to largest (in ascending order) by the distances
+
+5. Pick the first K entries from the sorted collection
+
+6. Get the labels of the selected K entries
+
+7. If regression, return the mean of the K labels
+
+8. If classification, return the mode of the K labels
+
 lets try it on out data:
 
 
@@ -138,11 +168,11 @@ CrossTable(x = seeds_test_labels, y = seeds_test_pred_z, prop.chisq=FALSE)
 # TODO graph of preformence
 
 #TODO update text down
-In the above table we see that all of the benign were predicted correctly, and 36 out of the 39 malignant 
-were too. 3 malignant labels were mistaken for being benign.
+In the above table we see that almost all of the seeds were predicted correctly.
+There were two mistakes, one of type 2 and one of type 3 were mistakenly predicted as type 1.
+The all other predictions were correct.
 
-
-Lets try normalization instead of  z-score standardization :
+Lets try min-max normalization instead of  z-score standardization :
 Create a simple normalization function (min/max normalization):
 
 ```{r}
@@ -175,32 +205,42 @@ seeds_test_pred <- knn(train = seeds_n_train, test = seeds_n_test, cl = seeds_tr
 # check performance
 a<-CrossTable(x = seeds_test_labels, y = seeds_test_pred, prop.chisq=FALSE)
 ```
-we see a bit of improvement, 
+Here we can see a worse predictions than before, another mistake has been added and now we have 3 prediction mistakes.  
 
-# TODO edit
+
 Lets try different values of 'k' to see if we can do better:
 because our dataset is not big, we can try many different 'k' in reasonable runing time.
+we took 1-40 k values and run this algorithm 40 times for each different hyper-parameter.
 ```{r}
+# loop over 40 different k values and saved the accuracy of algorithm prediction in array
 i=1
 k_options=1
 for (i in 1:40){
 knn_pred <- knn(train=seeds_n_train, test=seeds_n_test, cl=seeds_train_labels, k=i)
 k_options[i] <- 100 * sum(seeds_test_labels == knn_pred)/NROW(seeds_test_labels)
 }
-
+# show the differences of the accuracy for each k value in a plot.
 plot(k_options, type="b", xlab="K- Value",ylab="Accuracy level", main = "knn model accuracy for different k values")
 ```
-# TODO conclusions of knn 
 
+As we saw, we can use KNN to as multi-class classifier algorithm.
+We saw that it better use z-score normalization instead of min-max.
+You can see on the last plot, that the best K hyper-parameters to use are 
+in range of 2 -28.
 
 
 after seeing the nice results of the knn, we wanted to test a model thatgives us an informative model in which we can learn from the output model.
 We choose Decision-Tree model for our next model
 
-#  Decision-Tree classifer
+#  Decision-Tree classifer:
 
+Decision Tree algorithm belongs to the family of supervised learning algorithms. Unlike other supervised learning algorithms, the decision tree algorithm can be used for solving regression and classification problems too.
 
-we already have training and test sets, normolized and shuffeled, lets check the almost even distribition between labales was preserve:
+The goal of using a Decision Tree is to create a training model that can use to predict the class or value of the target variable by learning simple decision rules inferred from prior data(training data).
+
+In Decision Trees, for predicting a class label for a record we start from the root of the tree. We compare the values of the root attribute with the record’s attribute. On the basis of comparison, we follow the branch corresponding to that value and jump to the next node.
+
+we already have training and test sets, normalized and shuffled, lets check the almost even distribution between labeles was preserve:
 ```{r}
 prop.table(table(seeds_train_labels))
 prop.table(table(seeds_test_labels))
@@ -210,10 +250,10 @@ The test is small so it is make sense that the distribution is not completely pr
 
 
 
-The 17th column of the dataset is the default class variable, so we need to exclude it from the training data frame, but supply it as the target factor (label) vector for classification:
+The 8th column of the dataset is the default class variable, so we need to exclude it from the training data frame, but supply it as the target factor (label) vector for classification:
 
 ```{r}
-# apply model in training data (17th column is the label to be predicted)
+# apply model in training data (8th column is the label to be predicted)
 seeds_model <- C5.0(seeds_n_train, seeds_train_labels)
 #take a look at our model
 seeds_model %>% vip()
@@ -225,12 +265,12 @@ Our tree is very short, according to the small number of the seeds features
 Next we'll look at the summary of the model. 
 
 ```{r}
-summary(surveys_model)
+summary(seeds_model)
 ```
 
 The numbers in parentheses indicate the number of examples meeting the criteria for
 that decision, and the number incorrectly classified by the decision. 
-For instance, on the first line, 326/34 indicates that of the 326 examples reaching the decision, 34 were incorrectly classified as not likely to default. In other words, 34 applicants actually defaulted, in spite of the model's prediction.
+For instance, on the first line, 54/1 indicates that of the 54 examples reaching the decision, 1 was incorrectly classified as not likely to type. In other words, 1 seed actually typed, in spite of the model's prediction.
 
 As we now know, it is very important to evaluate our model performance:
 
@@ -242,7 +282,7 @@ CrossTable(seeds_test_labels, seeds_pred, prop.chisq = FALSE, prop.c = FALSE, pr
 ```
 
 The performance here is a bit worse than its performance on the
-training data as expected,and also a bit worse than the knn classifier.
+training data as expected,and also a bit worse than the best predictions in knn classifier.
 
 Lets try improving our model
 
@@ -267,15 +307,12 @@ seeds_boost10 %>% vip()
 summary(seeds_boost10)
 ```
 
-The classifier made 25 mistakes on 800 training examples for an error rate of
-3.1% percent. This is quite an improvement over the previous training error rate
-before adding boosting! However, it remains to be seen whether we see
-a similar improvement on the test data. Let's take a look:
+Let's take a look about the predictions results after boosting:
 
 ```{r}
 # boosting on test data
 seeds_boost_pred10 <- predict(seeds_boost10, seeds_n_test) 
-
+# present it on Crossable
 CrossTable(seeds_test_labels, seeds_boost_pred10,
 prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE,
 dnn = c('actual default', 'predicted default'))
@@ -294,7 +331,7 @@ we got small improvment in the results with only 2/39 mistaken classification
 איתמר: ניסיתי מה שהיא עשתה בתרגול הבא וזה לא עובד לי
 לדעתי לוותר
 
-```{r setup}
+```{r}
 library(tidymodels) # for the rsample package, along with the rest of tidymodels
 library(modeldata)  # for the cells data
 library(vip)        # for variable importance plots
@@ -326,7 +363,7 @@ tree_grid %>%
   count(tree_depth)
 
 set.seed(234)
-seeds_folds <- vfold_cv(seeds_train) # create the actual cross-validation folds
+seeds_folds <- vfold_cv(seeds_n_train) # create the actual cross-validation folds
 ```
 
 
