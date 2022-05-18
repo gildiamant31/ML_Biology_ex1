@@ -144,8 +144,6 @@ seeds_test_labels <- seeds_z$Type[161:199]
 ```
 
 
-#TODO may remove
-
 Lets plot the train set and the test set:
 ```{r}
 ##### Visualize the Split #####
@@ -414,7 +412,7 @@ grid.arrange(c1,c2, nrow = 1)
 # True on each point means that it is correct prediction, FALSE means wrong prediction
 ```
 
-##Comparing between the two models:
+### Comparing between the two models:
 
 compare the best models prediction results of both algorithms:
 ```{r}
@@ -463,7 +461,7 @@ ggplot(data = df ,mapping = aes(x=Algo, y= Accuracy, fill = Accuracy)) +
   y = "Accuracy", x = "Algorithm")
 ```
 
-##Summary & Conclusions :
+## Summary & Conclusions :
 
 After we analyzed and run different algorithms on our data we assume that we got very good and similar classification results for each algorithm with and without any improvement maybe as a result of that small size of our dataset cause small group of test sampels which maybe is easy to classify. Another option is that our dataset is easy to cllasify dou to  differentiated  features.
 
