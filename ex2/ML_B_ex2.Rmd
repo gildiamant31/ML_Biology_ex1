@@ -123,6 +123,8 @@ seeds_z <- cbind(as.data.frame(scale(pca_seeds[1:7])),pca_seeds[8:10])
 ```
 
 
+Note: because we are trying to classify 3 differnt type of seeds, the only parameter matters is the accuracy, there is no recall..
+
 ## KNN:
 The k-nearest neighbors (KNN) algorithm is a simple, easy-to-implement supervised machine learning algorithm that can be used to solve classification problems.
 The KNN algorithm assumes that similar things exist in close proximity. In other words, similar things are near to each other.
@@ -305,7 +307,8 @@ seeds_model <- C5.0(seeds_n_train[1:7], seeds_train_labels)
 #take a look at our model
 seeds_model %>% vip()
 ```
-We can see that our tree relay hard on only 3 of the features and maybe its decrease our performance
+We can see that our tree relay hard on only 3 of the features and maybe its decrease our performance.
+Another way to look about it that we can see that we got 92% accuracy relaying on this feautres so we can said that the type of seed can be nicly predited by its kernel-grove, area and asymmetry-coeff
 
 Next we'll look at the summary of the model. 
 
@@ -414,7 +417,8 @@ grid.arrange(c1,c2, nrow = 1)
 
 ### Comparing between the two models:
 
-compare the best models prediction results of both algorithms:
+compare the best models prediction results of both algorithms,
+This time we used colors to emphsize mistakes:
 ```{r}
 #KNN_Model merge
 
@@ -424,13 +428,13 @@ test_v_1 <- cbind(seeds_n_test,knn_pred_k5)
 test_v_1$Correct <- test_v_1$Type == test_v_1$knn_pred_k5 
 
 # again here we also plot the types according two specific columns after PCA
-c1 <-ggplot(test_v_1, aes(y=PC1, x = PC2, col=Type, label = Correct)) +
+c1 <-ggplot(test_v_1, aes(y=PC1, x = PC2, col=Correct,shape = Type ,label = Correct)) +
   geom_point(size=5, alpha = 0.2) + 
   theme_moma() +
   theme(legend.position = "bottom") +
   ggtitle("KNN Prediction Results") + 
   geom_text(size = 3, show.legend = FALSE)
-c2 <-ggplot(test_merged2, aes(y=PC1, x = PC2, col=Type, label = Correct)) +
+c2 <-ggplot(test_merged2, aes(y=PC1, x = PC2, col=Correct,shape = Type ,label = Correct)) +
   geom_point(size=5, alpha = 0.2) + 
   theme_moma() +
   theme(legend.position = "bottom") +
@@ -463,15 +467,17 @@ ggplot(data = df ,mapping = aes(x=Algo, y= Accuracy, fill = Accuracy)) +
 
 ## Summary & Conclusions :
 
-After we analyzed and run different algorithms on our data we assume that we got very good and similar classification results for each algorithm with and without any improvement maybe as a result of that small size of our dataset cause small group of test sampels which maybe is easy to classify. Another option is that our dataset is easy to cllasify dou to  differentiated  features.
+firstly, we  tried KNN with k=2 and we got nice results of 92% accuracy using Z-score normalization.
+After checking big range of 'k' , the best prediction result was over 96% accuracy in predictions, while using hyper-parameter K=5(while using min-max normalization).
 
-The best prediction result that we got was over 96 accuracy in predictions, while using hyper-parameter K=5(while using min-max normalization).
-
-The next algorithm was DT we use it on our dataset after normalization process(min-max) without improvement and got 5 mistakes.
-After boost improvement (10 trails of the algorithm) on DT algorithm we got only 4 mistakes in algo's predictions.
+The next algorithm was DT we use it on our dataset after normalization process(min-max) without improvement and got 92% accuracy.
+After aggregating many decision trees by boosting improvement (10 trails of the algorithm) on DT algorithm we improved to 94% accuracy in algo's predictions.
 We used the default Decision Tree and its default hyper-parameters.
 
-After comparing two algorithms results (see the two comparing plots) we assume that KNN with K=5 as hyper-parameter is the the better algorithm to choose while using this data.
+After comparing two algorithms results (see the two comparing plots) we assume that KNN with K=5 as hyper-parameter is the the better algorithm to choose while classifing this data. However, the KNN is 'dummmy' algorithrm which dose'nt remember which means its has to go over all the training set for every classification, which is costly in runing time. The DT need some time for its train but the classification is lighter. So in case of need in fast classification, we reccomend chossing the DT with boosting of 10 trails which also gave very good preformance .
+
+
+After we analyzed and run different algorithms on our data we assume that we got very good and similar classification results for each algorithm with and without improvement maybe as a result of that small size of our dataset cause small group of test sampels which maybe was easy to classify. Another option is that our dataset is easy to classify dou to  differentiated  features.
 
 As said before, our results are hardly connected with our test set - which is very small and have great impact on our results.
 To validate our results its will be clever to rerun our analyzes several time with different test sets and see if the results stay as is.
