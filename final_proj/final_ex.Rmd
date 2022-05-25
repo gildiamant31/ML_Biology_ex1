@@ -1,0 +1,483 @@
+---
+title: "ML_B_ex2 - Seeds Dataset"
+author: "Gil Diamant 314978412, Yishay Shlezinger 208438119 & Itamar Twersky 311587489"
+date: "17 05 2022"
+output: pdf_document
+---
+On this report we compared between two classification supervised machine learning algorithms:
+KNN & Decision Tree.
+
+```{r setup, global_options, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE, fig.width=8, fig.height=3)
+```
+
+
+load all relevant libraries for using on EDA:
+```{r}
+library(ggplot2) # load the ggplot2 library
+library(dplyr)
+library(tidyverse)
+library(scales)
+library(gmodels)
+library(C50)
+library(vip)        # for variable importance plots
+```
+
+create theme for all prediction results plots:
+
+```{r}
+##### Theme Moma #####
+theme_moma <- function(base_size = 12, base_family = "Helvetica") {
+  theme(
+    plot.background = element_rect(fill = "#F7F6ED"),
+    legend.key = element_rect(fill = "#F7F6ED"),
+    legend.background = element_rect(fill = "#F7F6ED"),
+    panel.background = element_rect(fill = "#F7F6ED"),
+    panel.border = element_rect(colour = "black", fill = NA, linetype = "dashed"),
+    panel.grid.minor = element_line(colour = "#7F7F7F", linetype = "dotted"),
+    panel.grid.major = element_line(colour = "#7F7F7F", linetype = "dotted")
+  )
+}
+```
+
+## Have a look at the data
+
+read data to a local variable called seeds:
+```{r}
+seeds <- read.csv("seeds.csv", stringsAsFactors = FALSE)
+```
+
+
+Firstly, lets observe the properties of the data:
+
+```{r}
+#show data as str
+str(seeds)
+```
+Our data is about wheat seeds, its have observations on 199 wheat seeds with 8 variables.
+Every wheat seed is categorized with type of 1/2/3 as a type of wheat seed.
+
+We are interested in creating a model with the ability to predict the type of weed, by its properties.
+
+As shown above, there is 7 columns of seeds' properties, all of them numeric.
+
+The type is numeric, and we wish to make it 'factor' for being categorical.
+
+```{r}
+# convert Type from numeric variable to factor
+seeds$Type<-as.factor(seeds$Type)
+```
+
+
+Because our data contains many columns (7, the 8th is the classification), we need a way to visualize most of the complexity represented in all dimensions in just two or three dimensions. Fortunately, that is exactly what dimension reduction does. Here, we apply a simple dimension reduction technique called principal component analysis (PCA) to all 7 numerical variables(the features) in the data set. 
+* Important to mention that before doing any dimensional reduction, it is important to preprocess your data- in this case our data has only numeric values. 
+
+The pca can be very useful in all of our analyzes for showing our data in 2D graph representing our seeds properties
+
+```{r}
+# Preform PCA on our data
+prcomp_seeds <- prcomp(seeds[, 1:7])
+# bind between 2 first pcas and our dataframe
+pca_seeds <-  cbind(seeds,PC1 = prcomp_seeds$x[, 1],PC2 = prcomp_seeds$x[, 2])
+```
+
+lets plot our pca results:
+````{r}
+# plot the types according two specific columns after PCA
+ggplot(pca_seeds, aes(y=PC1, x = PC2, col=Type)) +
+  geom_point(size=5, alpha = 0.2) + 
+  theme_moma() +
+  theme(legend.position = "bottom") +
+  ggtitle("seeds Dataset")
+
+```
+we can see that our data is almost linearly separable 
+
+last thing to look at the distribution of the labels:
+```{r}
+# show 'type' column as table
+table(pca_seeds$Type)
+```
+We can see that the data is almost evenly distributed, and we should preserve it when splitting the data.
+
+
+## prepreing the data
+
+
+Lets shuffle the data so it's order wont affect our models 
+
+```{r}
+# shuffle the data by rows
+#setting a seed for reproducible results
+set.seed(1234)
+pca_seeds= pca_seeds[sample(1:nrow(pca_seeds)), ]
+```
+
+
+we saw above that the range of value is different between properties.
+Because we don't want that it will affect the importance of each property, we standardize the data with z-score.
+```{r}
+# z-score standardization (on the feuters columns only)
+seeds_z <- cbind(as.data.frame(scale(pca_seeds[1:7])),pca_seeds[8:10])
+
+```
+
+
+Note: because we are trying to classify 3 differnt type of seeds, the only parameter matters is the accuracy, there is no recall..
+
+## KNN:
+The k-nearest neighbors (KNN) algorithm is a simple, easy-to-implement supervised machine learning algorithm that can be used to solve classification problems.
+The KNN algorithm assumes that similar things exist in close proximity. In other words, similar things are near to each other.
+KNN is looking for the 'k' nearest neighbors to the Unlabeled sample and classify it Like most neighbors, while 'k' is  a hyper-parameter we should tune.
+
+lets try it on out data:
+The next step is to create a training set and a test set, and to store the labels in a different vector to be used later. We divide our data into 80% train, 20% test,.
+
+```{r}
+# create train set
+seeds_train_z <- seeds_z[1:160, ]
+# create test set
+seeds_test_z <- seeds_z[161:199, ]
+# labels of train set
+seeds_train_labels <- seeds_z$Type[1:160]
+# labels of test set
+seeds_test_labels <- seeds_z$Type[161:199]
+
+```
+
+
+Lets plot the train set and the test set:
+```{r}
+##### Visualize the Split #####
+
+# again plot the types according two specific columns after PCA
+# plot pca for training
+c1 <- ggplot(seeds_train_z, aes(y=PC1, x = PC2, col=seeds_train_labels)) +
+  geom_jitter(size=5, alpha = 0.2) + 
+  theme_moma() +
+  theme(legend.position = "bottom") +
+  ggtitle("Train Set")
+# plot pca for training
+c2 <- ggplot(seeds_test_z, aes(y=PC1, x = PC2, col=seeds_test_labels)) +
+  geom_jitter(size=5, alpha = 0.2) + 
+  theme_moma() +
+  theme(legend.position = "bottom") +
+  ggtitle("Test Set")
+ 
+grid.arrange(c1,c2, nrow = 1)
+```
+
+
+'class' package for knn algorithm.
+```{r}
+library(class) 
+```
+
+And finally, we are ready to run our algorithm. We'll start with K=2 as arbitrary hyper-parameter, and check another options if its wont be good.
+
+```{r}
+# get predictions for the test set from knn, send as input the features columns and the train labels 
+seeds_test_pred_z <- knn(train = seeds_train_z[1:7], test = seeds_test_z[1:7], cl = seeds_train_labels, k=2)
+```
+
+Since the knn function returns a factor vector of the predicted values, we'll compare that vector with the true labels we saved in advance. We'll do the comparison with the CrossTable function, from the gmodels package we'll load: 
+
+```{r}
+library(gmodels)
+# show preformence in table
+CrossTable(x = seeds_test_labels, y = seeds_test_pred_z, prop.chisq=FALSE)
+
+#knn_model contains only preicted value
+test_v_1 <- cbind(seeds_test_z,seeds_test_pred_z)
+#This will return TRUE or FALSE.
+test_v_1$Correct <- test_v_1$Type == test_v_1$seeds_test_pred_z
+
+# again here we also plot the types according two PCA with TRUE or FALSE labeling, and color of the true lable
+ggplot(test_v_1, aes(y=PC1, x = PC2, col=seeds_test_labels, label = Correct)) +
+  geom_point(size=5, alpha = 0.2) + 
+  theme_moma() +
+  theme(legend.position = "bottom") +
+  ggtitle("KNN Prediction Results") + 
+  geom_text(size = 3, show.legend = FALSE)
+# True on each point means that it is correct prediction, FALSE means wrong prediction
+```
+In the above table we see that almost all of the seeds were predicted correctly.
+There were three mistakes, two of type 2 and one of type 3 were mistakenly predicted as type 1.
+one of type 1 were mistakenly predicted as type 2.
+Two of the mistakes make some sense because one is on the borders between group, and one is outlayer.
+The all other predictions were correct.
+
+### improving the algorithem
+
+Lets try min-max normalization instead of  z-score standardization :
+Create a simple normalization function (min/max normalization):
+
+```{r}
+# create the min/max normalization function:
+normalize <- function(x) {
+return ((x - min(x)) / (max(x) - min(x)))
+}
+
+```
+
+Use the normalization function on our data:
+
+```{r}
+# normlize features columns.
+seeds_n <- cbind(lapply(pca_seeds[1:7], normalize),pca_seeds[8:10])
+
+```
+
+repeat the previous steps (divide the data into train and test, classify, and compare the results to the true values):
+
+
+```{r}
+#setting a seed for reproducible results
+set.seed(1234)
+# create train set
+seeds_n_train <- seeds_n[1:160, ]
+# create test set
+seeds_n_test <- seeds_n[161:199, ]
+# use knn algorithem
+knn_pred_2 <- knn(train=seeds_n_train[1:7], test=seeds_n_test[1:7], cl=seeds_train_labels, k=2)
+# check performance
+CrossTable(x = seeds_test_labels, y = knn_pred_2, prop.chisq=FALSE)
+```
+We have improvement, and there is only 2 mistakes.  
+
+Maybe we need to tune our 'k' parameter:
+Lets try different values of 'k' to see its impact on the algorithm performance:
+because our dataset is not big, we can try many different 'k' in reasonable ruining time.
+we took 1-40 k values and run this algorithm 40 times for each different hyper-parameter.
+```{r}
+#setting a seed for reproducible results
+set.seed(1234)
+# loop over 40 different k values and saved the accuracy of algorithm prediction in array
+i=1
+k_options=1
+for (i in 1:40){
+knn_pred <- knn(train=seeds_n_train[1:7], test=seeds_n_test[1:7], cl=seeds_train_labels, k=i)
+k_options[i] <- 100 * sum(seeds_test_labels == knn_pred)/NROW(seeds_test_labels)
+}
+
+
+# show the differences of the accuracy for each k value in a plot.
+plot(k_options, type="b", xlab="K- Value",ylab="Accuracy level", main = "knn model accuracy for different k values")
+```
+The results shown above can easly explained - if we use too small 'k' then we dont check big enough group of neighbors, but if we choose 
+to much big 'k', we are checking samples  that are not neighbors at all.
+
+
+Use KNN with k between 3 to ~28 and got only one mistake as we can see here :
+
+```{r}
+#setting a seed for reproducible results
+set.seed(1234)
+knn_pred_k5 <- knn(train=seeds_n_train[1:7], test=seeds_n_test[1:7], cl=seeds_train_labels, k=5)
+CrossTable(x = seeds_test_labels, y = knn_pred_k5, prop.chisq=FALSE)
+```
+
+As we saw, we can use KNN to as multi-class classifier algorithm.
+
+If we use 'k' in values of 3 - 25 then the KNN got very good results with only 1:39 mistakes.
+
+
+after seeing the nice results of the knn, we wanted to test a model that gives us an informative model in which we can learn from the output model.
+We choose Decision-Tree model for our next model
+
+##  Decision-Tree classifer:
+
+Decision Tree algorithm belongs to the family of supervised learning algorithms. The decision tree algorithm can be used for solving regression and classification problems too.
+The goal of using a Decision Tree is to create a training model that can use to predict the class or value of the target variable by learning simple decision rules inferred from prior data(training data).
+In Decision Trees, for predicting a class label for a record we start from the root of the tree. We compare the values of the root attribute with the record’s attribute. On the basis of comparison, we follow the branch corresponding to that value and jump to the next node.
+
+we already have training and test sets, normalized and shuffled, lets check the almost even distribution between labeles was preserved:
+```{r}
+prop.table(table(seeds_train_labels))
+prop.table(table(seeds_test_labels))
+```
+As shown above the distribution in the train is mostly preserved, which is important for efficient learning of our model.
+The test is small so it is make sense that the distribution is not completely preserved by randomly choosing. Because its only used for testing our model, so its less matter if the distribution is not completely preserved
+
+```{r}
+#setting a seed for reproducible results
+set.seed(1234)
+# apply model in training data (8th column is the label to be predicted)
+seeds_model <- C5.0(seeds_n_train[1:7], seeds_train_labels)
+#take a look at our model
+seeds_model %>% vip()
+```
+We can see that our tree relay hard on only 3 of the features and maybe its decrease our performance.
+Another way to look about it that we can see that we got 92% accuracy relaying on this feautres so we can said that the type of seed can be nicly predited by its kernel-grove, area and asymmetry-coeff
+
+Next we'll look at the summary of the model. 
+
+```{r}
+summary(seeds_model)
+```
+Our tree is very short, according to the small number of the seeds features
+
+The numbers in parentheses indicate the number of examples meeting the criteria for
+that decision, and the number incorrectly classified by the decision. 
+For instance, on the first line, 62/6 indicates that of the 62 examples reaching the decision, 6 was incorrectly classified as not likely to type. In other words, 6 seed actually typed, in spite of the model's prediction.
+
+As we now know, it is very important to evaluate our model performance:
+
+```{r}
+#setting a seed for reproducible results
+set.seed(1234)
+# apply model on test data
+seeds_pred <- predict(seeds_model, seeds_n_test[1:7])
+
+CrossTable(seeds_test_labels, seeds_pred, prop.chisq = FALSE,
+           prop.c = FALSE, prop.r = FALSE, 
+           dnn = c('actual Type', 'predicted Type'))
+
+#DT_Model merge
+#pred contains only predicted value
+test_merged1 <- cbind(seeds_n_test,seeds_pred)
+test_merged1$Correct <- test_merged1$Type == 
+  test_merged1$seeds_pred #This will return TRUE or FALSE.
+
+# again here we also plot the types according two specific columns after PCA
+c1 <-ggplot(test_merged1, aes(y=PC1, x = PC2, col=Type, label = Correct)) +
+  geom_point(size=5, alpha = 0.2) + 
+  theme_moma() +
+  theme(legend.position = "bottom") +
+  ggtitle("DT Prediction Results") + 
+  geom_text(size = 3, show.legend = FALSE)
+show(c1)
+```
+
+The performance here is a bit worse than its performance on the
+training data as expected,and also a bit worse than the best predictions in knn classifier.
+
+Lets try improving our model
+
+### Adaptive Boosting
+
+So, our model is not that great. Let's try and improve it next. C5.0 includes a feature called adaptive boosting. This is a process in which many decision trees are built and the trees vote on the best class for each example. 
+
+The C5.0() function makes it easy to add boosting to our C5.0 decision tree. We
+simply need to add an additional trials parameter indicating the number of
+separate decision trees to use in the boosted team. The trials parameter sets an
+upper limit; the algorithm will stop adding trees if it recognizes that additional 
+trials do not seem to be improving the accuracy. 
+We'll start with 10 trials, a number that has become the de facto standard, as research 
+suggests that this reduces error rates on test data by about 25 percent:
+
+```{r}
+# boosting with 10 trials (on training)
+#setting a seed for reproducible results
+set.seed(1234)
+seeds_boost10 <- C5.0(seeds_n_train[1:7], seeds_train_labels, trials = 10)
+
+seeds_boost10 %>% vip()
+
+```
+now we have more imprtant variables which can improve 
+
+
+Let's take a look about the predictions results after boosting:
+
+```{r}
+#setting a seed for reproducible results
+set.seed(1234)
+# boosting on test data
+seeds_boost_pred10 <- predict(seeds_boost10, seeds_n_test) 
+# present it on Crossable
+CrossTable(seeds_test_labels, seeds_boost_pred10,
+prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE,
+dnn = c('actual default', 'predicted default'))
+
+#DT_Model merge
+#pred10 contains only predicted value
+test_merged2 <- data.frame(seeds_n_test,seeds_boost_pred10,seeds_test_labels)
+test_merged2$Correct <- test_merged2$seeds_test_labels == 
+  test_merged2$seeds_boost_pred10 #This will return TRUE or FALSE.
+
+# again here we also plot the types according two specific columns after PCA
+c2 <-ggplot(test_merged2, aes(y=PC1, x = PC2, col=seeds_test_labels, label = Correct)) +
+  geom_point(size=5, alpha = 0.2) + 
+  theme_moma() +
+  theme(legend.position = "bottom") +
+  ggtitle("Improved DT Prediction Results") + 
+  geom_text(size = 3, show.legend = FALSE)
+show(c2)
+```
+we got small improvement in the results with only 2/39 mistaken classification which are very close to our results using knn.
+
+
+plot two type of DT predictions:
+
+```{r}
+grid.arrange(c1,c2, nrow = 1)
+# True on each point means that it is correct prediction, FALSE means wrong prediction
+```
+
+### Comparing between the two models:
+
+compare the best models prediction results of both algorithms,
+This time we used colors to emphsize mistakes:
+```{r}
+#KNN_Model merge
+
+#knn_model contains only preicted value
+test_v_1 <- cbind(seeds_n_test,knn_pred_k5)
+#This will return TRUE or FALSE.
+test_v_1$Correct <- test_v_1$Type == test_v_1$knn_pred_k5 
+
+# again here we also plot the types according two specific columns after PCA
+c1 <-ggplot(test_v_1, aes(y=PC1, x = PC2, col=Correct,shape = Type ,label = Correct)) +
+  geom_point(size=5, alpha = 0.2) + 
+  theme_moma() +
+  theme(legend.position = "bottom") +
+  ggtitle("KNN Prediction Results") + 
+  geom_text(size = 3, show.legend = FALSE)
+c2 <-ggplot(test_merged2, aes(y=PC1, x = PC2, col=Correct,shape = Type ,label = Correct)) +
+  geom_point(size=5, alpha = 0.2) + 
+  theme_moma() +
+  theme(legend.position = "bottom") +
+  ggtitle("Improved DT Prediction Results") + 
+  geom_text(size = 3, show.legend = FALSE)
+# plot both in one line
+grid.arrange(c1,c2, nrow = 1)
+# True on each point means that it is correct prediction, FALSE means wrong prediction
+```
+We can see both of them are mistaken in the same sample, which look like its very hard to classify because its on the border.
+The DT also have anothe mistake which the knn are preventing from.
+
+
+compare the accuracy of each algorithm best model:
+```{r}
+# get accuracy of DT boost prediction
+DT_acc <- 100 * sum(seeds_test_labels == seeds_boost_pred10)/NROW(seeds_test_labels)
+# get accuracy of knn_k5 prediction
+KNN_acc <- 100 * sum(seeds_test_labels == knn_pred_k5)/NROW(seeds_test_labels)
+
+# create data frame with the accuracy to plot it.
+Algo <- c("DT","KNN")
+Accuracy <- c(DT_acc,KNN_acc)
+df <- data.frame(Algo, Accuracy)
+ggplot(data = df ,mapping = aes(x=Algo, y= Accuracy, fill = Accuracy)) +
+  geom_col() + 
+  labs(title = "Compare DT accuracy to KNN accuracy",
+  y = "Accuracy", x = "Algorithm")
+```
+
+## Summary & Conclusions :
+
+firstly, we  tried KNN with k=2 and we got nice results of 92% accuracy using Z-score normalization.
+After checking big range of 'k' , the best prediction result was over 96% accuracy in predictions, while using hyper-parameter K=5(while using min-max normalization).
+
+The next algorithm was DT we use it on our dataset after normalization process(min-max) without improvement and got 92% accuracy.
+After aggregating many decision trees by boosting improvement (10 trails of the algorithm) on DT algorithm we improved to 94% accuracy in algo's predictions.
+We used the default Decision Tree and its default hyper-parameters.
+
+After comparing two algorithms results (see the two comparing plots) we assume that KNN with K=5 as hyper-parameter is the the better algorithm to choose while classifing this data. However, the KNN is 'dummmy' algorithrm which dose'nt remember which means its has to go over all the training set for every classification, which is costly in runing time. The DT need some time for its train but the classification is lighter. So in case of need in fast classification, we reccomend chossing the DT with boosting of 10 trails which also gave very good preformance .
+
+
+After we analyzed and run different algorithms on our data we assume that we got very good and similar classification results for each algorithm with and without improvement maybe as a result of that small size of our dataset cause small group of test sampels which maybe was easy to classify. Another option is that our dataset is easy to classify dou to  differentiated  features.
+
+As said before, our results are hardly connected with our test set - which is very small and have great impact on our results.
+To validate our results its will be clever to rerun our analyzes several time with different test sets and see if the results stay as is.
