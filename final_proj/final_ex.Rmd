@@ -46,7 +46,6 @@ theme_moma <- function(base_size = 12, base_family = "Helvetica") {
 read data to a local variable called seeds:
 ```{r}
 cancer_patient <- read_excel("cancer patient data sets.xlsx")
-cancer_patient_no_NA <- na.omit(cancer_patient)
 ```
 
 
@@ -295,8 +294,8 @@ In Decision Trees, for predicting a class label for a record we start from the r
 
 we already have training and test sets, normalized and shuffled, lets check the almost even distribution between labeles was preserved:
 ```{r}
-prop.table(table(seeds_train_labels))
-prop.table(table(seeds_test_labels))
+prop.table(table(cancer_train_labels))
+prop.table(table(cancer_test_labels))
 ```
 As shown above the distribution in the train is mostly preserved, which is important for efficient learning of our model.
 The test is small so it is make sense that the distribution is not completely preserved by randomly choosing. Because its only used for testing our model, so its less matter if the distribution is not completely preserved
@@ -305,9 +304,9 @@ The test is small so it is make sense that the distribution is not completely pr
 #setting a seed for reproducible results
 set.seed(1234)
 # apply model in training data (8th column is the label to be predicted)
-seeds_model <- C5.0(seeds_n_train[1:7], seeds_train_labels)
+cancer_model <- C5.0(cancer_n_train[1:7], cancer_train_labels)
 #take a look at our model
-seeds_model %>% vip()
+cancer_model %>% vip()
 ```
 We can see that our tree relay hard on only 3 of the features and maybe its decrease our performance.
 Another way to look about it that we can see that we got 92% accuracy relaying on this feautres so we can said that the type of seed can be nicly predited by its kernel-grove, area and asymmetry-coeff
@@ -315,7 +314,7 @@ Another way to look about it that we can see that we got 92% accuracy relaying o
 Next we'll look at the summary of the model. 
 
 ```{r}
-summary(seeds_model)
+summary(cancer_model)
 ```
 Our tree is very short, according to the small number of the seeds features
 
@@ -329,20 +328,20 @@ As we now know, it is very important to evaluate our model performance:
 #setting a seed for reproducible results
 set.seed(1234)
 # apply model on test data
-seeds_pred <- predict(seeds_model, seeds_n_test[1:7])
+cancer_pred <- predict(cancer_model, cancer_n_test[1:23])
 
-CrossTable(seeds_test_labels, seeds_pred, prop.chisq = FALSE,
+CrossTable(cancer_test_labels, cancer_pred, prop.chisq = FALSE,
            prop.c = FALSE, prop.r = FALSE, 
            dnn = c('actual Type', 'predicted Type'))
 
 #DT_Model merge
 #pred contains only predicted value
-test_merged1 <- cbind(seeds_n_test,seeds_pred)
-test_merged1$Correct <- test_merged1$Type == 
-  test_merged1$seeds_pred #This will return TRUE or FALSE.
+test_merged1 <- cbind(cancer_n_test,cancer_pred)
+test_merged1$Correct <- test_merged1$Level == 
+  test_merged1$cancer_pred #This will return TRUE or FALSE.
 
 # again here we also plot the types according two specific columns after PCA
-c1 <-ggplot(test_merged1, aes(y=PC1, x = PC2, col=Type, label = Correct)) +
+c1 <-ggplot(test_merged1, aes(y=PC1, x = PC2, col=Level, label = Correct)) +
   geom_point(size=5, alpha = 0.2) + 
   theme_moma() +
   theme(legend.position = "bottom") +
@@ -372,9 +371,9 @@ suggests that this reduces error rates on test data by about 25 percent:
 # boosting with 10 trials (on training)
 #setting a seed for reproducible results
 set.seed(1234)
-seeds_boost10 <- C5.0(seeds_n_train[1:7], seeds_train_labels, trials = 10)
+cancer_boost10 <- C5.0(cancer_n_train[1:23], cancer_train_labels, trials = 10)
 
-seeds_boost10 %>% vip()
+cancer_boost10 %>% vip()
 
 ```
 now we have more imprtant variables which can improve 
@@ -386,20 +385,20 @@ Let's take a look about the predictions results after boosting:
 #setting a seed for reproducible results
 set.seed(1234)
 # boosting on test data
-seeds_boost_pred10 <- predict(seeds_boost10, seeds_n_test) 
+cancer_boost_pred10 <- predict(cancer_boost10, cancer_n_test) 
 # present it on Crossable
-CrossTable(seeds_test_labels, seeds_boost_pred10,
+CrossTable(cancer_test_labels, cancer_boost_pred10,
 prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE,
 dnn = c('actual default', 'predicted default'))
 
 #DT_Model merge
 #pred10 contains only predicted value
-test_merged2 <- data.frame(seeds_n_test,seeds_boost_pred10,seeds_test_labels)
-test_merged2$Correct <- test_merged2$seeds_test_labels == 
-  test_merged2$seeds_boost_pred10 #This will return TRUE or FALSE.
+test_merged2 <- data.frame(cancer_n_test,cancer_boost_pred10,cancer_test_labels)
+test_merged2$Correct <- test_merged2$cancer_test_labels == 
+  test_merged2$cancer_boost_pred10 #This will return TRUE or FALSE.
 
 # again here we also plot the types according two specific columns after PCA
-c2 <-ggplot(test_merged2, aes(y=PC1, x = PC2, col=seeds_test_labels, label = Correct)) +
+c2 <-ggplot(test_merged2, aes(y=PC1, x = PC2, col=cancer_test_labels, label = Correct)) +
   geom_point(size=5, alpha = 0.2) + 
   theme_moma() +
   theme(legend.position = "bottom") +
@@ -425,18 +424,18 @@ This time we used colors to emphsize mistakes:
 #KNN_Model merge
 
 #knn_model contains only preicted value
-test_v_1 <- cbind(seeds_n_test,knn_pred_k5)
+test_v_1 <- cbind(cancer_n_test,knn_pred_k5)
 #This will return TRUE or FALSE.
-test_v_1$Correct <- test_v_1$Type == test_v_1$knn_pred_k5 
+test_v_1$Correct <- test_v_1$Level == test_v_1$knn_pred_k5 
 
 # again here we also plot the types according two specific columns after PCA
-c1 <-ggplot(test_v_1, aes(y=PC1, x = PC2, col=Correct,shape = Type ,label = Correct)) +
+c1 <-ggplot(test_v_1, aes(y=PC1, x = PC2, col=Correct,shape = Level ,label = Correct)) +
   geom_point(size=5, alpha = 0.2) + 
   theme_moma() +
   theme(legend.position = "bottom") +
   ggtitle("KNN Prediction Results") + 
   geom_text(size = 3, show.legend = FALSE)
-c2 <-ggplot(test_merged2, aes(y=PC1, x = PC2, col=Correct,shape = Type ,label = Correct)) +
+c2 <-ggplot(test_merged2, aes(y=PC1, x = PC2, col=Correct,shape = Level ,label = Correct)) +
   geom_point(size=5, alpha = 0.2) + 
   theme_moma() +
   theme(legend.position = "bottom") +
@@ -453,9 +452,9 @@ The DT also have anothe mistake which the knn are preventing from.
 compare the accuracy of each algorithm best model:
 ```{r}
 # get accuracy of DT boost prediction
-DT_acc <- 100 * sum(seeds_test_labels == seeds_boost_pred10)/NROW(seeds_test_labels)
+DT_acc <- 100 * sum(cancer_test_labels == cancer_boost_pred10)/NROW(cancer_test_labels)
 # get accuracy of knn_k5 prediction
-KNN_acc <- 100 * sum(seeds_test_labels == knn_pred_k5)/NROW(seeds_test_labels)
+KNN_acc <- 100 * sum(cancer_test_labels == knn_pred_k5)/NROW(cancer_test_labels)
 
 # create data frame with the accuracy to plot it.
 Algo <- c("DT","KNN")
