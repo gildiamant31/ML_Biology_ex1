@@ -4,15 +4,13 @@ author: "Gil Diamant, Yishay Shlezinger & Itamar Twersky"
 date: "17 05 2022"
 output: pdf_document
 ---
-On this report we compared between two classification supervised machine learning algorithms:
-KNN & Decision Tree.
-
+ 
 ```{r setup, global_options, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE, fig.width=8, fig.height=3)
 ```
 
 
-load all relevant libraries for using on EDA:
+load all relevant libraries 
 ```{r}
 library(ggplot2) # load the ggplot2 library
 library(readxl)
@@ -21,6 +19,7 @@ library(tidyverse)
 library(scales)
 library(gmodels)
 library(C50)
+library(corrplot)
 library(vip)        # for variable importance plots
 ```
 
@@ -50,11 +49,51 @@ cancer_patient <- read_excel("cancer patient data sets.xlsx")
 
 
 Firstly, lets observe the properties of the data:
-
+# TODO make sure we know what all of the colunms means
 ```{r}
 #show data as str
 str(cancer_patient)
 ```
+
+look for NA/inf valuse
+
+```{r}
+any(is.na(cancer_patient))
+total = c()
+for (variable in cancer_patient) {
+  total <- append(total, any(is.infinite(variable)))
+}
+any(total)
+prop.table(table(cancer_patient$Level))
+```
+
+# data selection
+
+corration
+
+```{r}
+# ensure the results are repeatable
+set.seed(7)
+# calculate correlation matrix
+correlationMatrix <- cor(cancer_patient[,2:24])
+# display the correlation matrix
+corrplot(correlationMatrix, method="pie")
+# find attributes that are highly corrected (ideally > 0.75)
+highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.85)
+# print indexes of highly correlated attributes
+print(highlyCorrelated)
+
+cancer_patient_sel <- select(cancer_patient, -c(`OccuPational Hazards`,`Alcohol use`))
+correlationMatrix <- cor(cancer_patient_sel[,2:22])
+highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.85)
+# print indexes of highly correlated attributes
+print(highlyCorrelated)
+```
+
+
+
+
+
 Our data is about wheat seeds, its have observations on 199 wheat seeds with 8 variables.
 Every wheat seed is categorized with type of 1/2/3 as a type of wheat seed.
 

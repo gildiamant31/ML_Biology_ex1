@@ -1,0 +1,347 @@
+---
+title: "Tirgul 7 - SVM"
+author: "Romi Goldner Kabeli"
+date: "6/05/2022"
+output: html_document
+---
+
+# Example 1 - Optical Character Recognition (OCR) with SVM
+
+Here we'll use SVM to develop a model similar to those used at the core of the
+Optical Character Recognition (OCR) software often bundled with desktop
+document scanners. The purpose of such software is to process paper-based
+documents by converting printed or handwritten text into an electronic form to be
+saved in a database. Of course, this is a difficult problem due to the many variants
+in handwritten style and printed fonts. Even so, software users expect perfection,
+as errors or typos can result in embarrassing or costly mistakes in a business
+environment. 
+
+```{r setup}
+set.seed(10)
+
+library(tidyverse)    # data manipulation and visualization
+library(kernlab)      # SVM methodology
+library(e1071)        # SVM methodology
+library(ISLR)         # contains example data set "Khan"
+library(RColorBrewer) # customized coloring of plots
+```
+
+According to the documentation provided by Frey and Slate, when the glyphs are
+scanned into the computer, they are converted into pixels and 16 statistical attributes are recorded.
+
+The attributes measure such characteristics as the horizontal and vertical
+dimensions of the glyph, the proportion of black (versus white) pixels, and the
+average horizontal and vertical position of the pixels. Presumably, differences in the
+concentration of black pixels across various areas of the box should provide a way to
+differentiate among the 26 letters of the alphabet.
+
+As always, we start by reading and looking at the data.
+
+```{r}
+# read and look at data
+letters <- read.csv("letterdata.csv")
+str(letters)
+
+letters$letter <- as.factor(letters$letter) # convert the letter from character to factor
+```
+
+One important thing to note when using SVM is that it only works on numeric data, and that
+each feature must be scaled. The data here is already numeric, and the package we use will 
+let us scale the data when running the algorithm itself. So we are good to go!
+
+The data is already randomized, so we can easily create our training and test sets:
+
+```{r}
+# split data into train and test sets
+letters_train <- letters[1:16000, ]
+letters_test <- letters[16001:20000, ]
+```
+
+And to building the actual model:
+
+```{r}
+# create and train model
+letter_classifier <- ksvm(letter ~ ., data = letters_train, kernel = "vanilladot")
+
+letter_classifier
+```
+
+As we mentioned, SVM can be a bit of a black box. We know the model uses 7037 support 
+vectors, and that the training error is 0.13 but we don't know anything else.
+
+Lets run the model on the test set, and see how well our model does.
+
+```{r}
+# apply model on test set
+letter_predictions <- predict(letter_classifier, letters_test)
+head(letter_predictions)
+```
+
+To examine how well our classifier performed, we need to compare the predicted
+letter to the true letter in the testing dataset. We'll use the table() function for this
+purpose:
+
+```{r}
+table(letter_predictions, letters_test$letter)
+```
+
+To avoid having to calculate an accuracy score from this large confusion matrix, we will use
+the following command, which returns a vector of TRUE or FALSE values, indicating
+whether the model's predicted letter agrees with (that is, matches) the actual
+letter in the test dataset. We will then use it to calculate the percentages.
+
+```{r}
+# calculate true/false values
+agreement <- letter_predictions == letters_test$letter
+# true/false preformance percentage
+prop.table(table(agreement))
+```
+
+Almost 84% success rate, not bad! but can we do better? Lets move on to improving the model performance.
+
+### Improving SVM Model
+
+There are many kernel functions for SVM, but a standard Gaussian Radial basis function (RBF) kernel is a good place to start. We'll use the ksvm() function here. Note that since this is a large dataset, running times can start to add up:
+
+```{r}
+# train svm model with RBF kernel function
+letter_classifier_rbf <- ksvm(letter ~ ., data = letters_train, kernel = "rbfdot")
+```
+
+Create a prediction for this new model:
+
+```{r}
+# predict on test set
+letter_predictions_rbf <- predict(letter_classifier_rbf, letters_test)
+```
+
+And compare it to the previous model:
+```{r}
+# calculate preformance
+agreement_rbf <- letter_predictions_rbf == letters_test$letter
+prop.table(table(agreement_rbf))
+```
+
+We can see a substantial increase in accuracy, from 84% to 93%. Other kernals might prove even better,
+or the cost of constraints parameter C could be varied to modify the width of the decision boundary. 
+
+Note that even at this point, we are not really sure how SVM classifies the characters (unlike 
+a decision tree lets say), but does it really matter? SVM is good for cases when it does not. 
+
+# Example 2 - SVM compared with MMC and SVC
+
+(This example was taken from https://afit-r.github.io/svm)
+
+In cases where the data is linearly separable (can be easily separated with a single line), SVM is not required. We can simply use a Maximal Margin Classifier (MMC) to separate the data. When the data is not linearly separable, we can use a support vector classifier (SVC) (sub-method of SVM). Lets see how the three methods compare:
+
+## MMC
+
+```{r}
+set.seed(123)
+# Construct sample data set - completely separated
+x <- matrix(rnorm(20*2), ncol = 2)
+y <- c(rep(-1,10), rep(1,10))
+x[y==1,] <- x[y==1,] + 3/2
+dat <- data.frame(x=x, y=as.factor(y))
+
+# Plot data
+ggplot(data = dat, aes(x = x.2, y = x.1, color = y, shape = y)) + 
+  geom_point(size = 2) +
+  scale_color_manual(values=c("#000000", "#FF0000")) +
+  theme(legend.position = "none")
+```
+
+We can see that the data can be divided with a single line, but we can still draw an infinite number of such lines. MMC helps us find the best one. First, we use the e1071 package:
+
+```{r}
+# Fit Support Vector Machine model to data set
+svmfit <- svm(y~., data = dat, kernel = "linear", scale = FALSE)
+# Plot Results
+plot(svmfit, dat)
+```
+
+The points marked as X were used to calculate the line, while the points marked with 0 were ignored. 
+
+The same line can be drawn using the kernlab package:
+
+```{r}
+# fit model and produce plot
+kernfit <- ksvm(x, y, type = "C-svc", kernel = 'vanilladot')
+plot(kernfit, data = x)
+```
+
+## SVC - Support Vector Classifiers
+
+What about when the cases can't be easily separated?
+
+```{r}
+set.seed(457)
+# Construct sample data set - not completely separated
+x <- matrix(rnorm(20*2), ncol = 2)
+y <- c(rep(-1,10), rep(1,10))
+x[y==1,] <- x[y==1,] + 1
+dat <- data.frame(x=x, y=as.factor(y))
+
+# Plot data set
+ggplot(data = dat, aes(x = x.2, y = x.1, color = y, shape = y)) + 
+  geom_point(size = 2) +
+  scale_color_manual(values=c("#000000", "#FF0000")) +
+  theme(legend.position = "none")
+```
+
+Whether the data is separable or not, the svm() command syntax is the same. In the case of data that is not linearly separable, however, the cost = argument takes on real importance. This quantifies the penalty associated with having an observation on the wrong side of the classification boundary. We can plot the fit in the same way as the completely separable case. We first use e1071:
+
+```{r}
+# Fit Support Vector Machine model to data set
+svmfit <- svm(y~., data = dat, kernel = "linear", cost = 10)
+# Plot Results
+plot(svmfit, dat)
+```
+
+Now we use the kernlab package, but also change the cost from 10 to 100.
+
+```{r}
+# Fit Support Vector Machine model to data set
+kernfit <- ksvm(x,y, type = "C-svc", kernel = 'vanilladot', C = 100)
+# Plot results
+plot(kernfit, data = x)
+```
+
+The higher the value of cost, the more the model tries to avoid a mis-clasification. But how can we decide what is the "best" cost for our data? Instead of specifying a cost up front, we can use the tune() function from e1071 to test various costs and identify which value produces the best fitting model:
+
+```{r}
+# find optimal cost of mis-classification
+tune.out <- tune(svm, y~., data = dat, kernel = "linear",
+                 ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)))
+# extract the best model
+(bestmod <- tune.out$best.model)
+```
+
+With the optimal cost calculated, we can construct a table of predicted classes against true classes using the predict() command as follows:
+
+```{r}
+ypred <- predict(bestmod, dat)
+(misclass <- table(predict = ypred, truth = dat$y))
+```
+
+Using this support vector classifier did an ok job, but the data we generated was small.
+
+
+## (finally) SVM
+
+The above mentioned SVC is a specific case of SVM, which is a more robust, generalized method. The options for classification structures using the svm() command from the e1071 package are linear, polynomial, radial, and sigmoid. To demonstrate a nonlinear classification boundary, we will construct a new data set:
+
+```{r}
+# construct larger random data set
+x <- matrix(rnorm(200*2), ncol = 2)
+x[1:100,] <- x[1:100,] + 2.5
+x[101:150,] <- x[101:150,] - 2.5
+y <- c(rep(1,150), rep(2,50))
+dat <- data.frame(x=x,y=as.factor(y))
+
+# Plot data
+ggplot(data = dat, aes(x = x.2, y = x.1, color = y, shape = y)) + 
+  geom_point(size = 2) +
+  scale_color_manual(values=c("#000000", "#FF0000")) +
+  theme(legend.position = "none")
+```
+
+Notice that the data is not linearly separable, and furthermore, isn’t all clustered together in a single group. There are two sections of class 1 observations with a cluster of class 2 observations in between. To demonstrate the power of SVMs, we’ll take 100 random observations from the set and use them to construct our boundary. We set kernel = "radial" based on the shape of our data and plot the results.
+
+```{r}
+# set pseudorandom number generator
+set.seed(123)
+# sample training data and fit model
+train <- base::sample(200,100, replace = FALSE)
+svmfit <- svm(y~., data = dat[train,], kernel = "radial", gamma = 1, cost = 1)
+# plot classifier
+plot(svmfit, dat)
+```
+
+The same procedure can be run using the kernlab package, which has far more kernel options than the corresponding function in e1071. In addition to the four choices in e1071, this package allows use of a hyperbolic tangent, Laplacian, Bessel, Spline, String, or ANOVA RBF kernel. To fit this data, we set the cost to be the same as it was before, 1.
+
+```{r}
+# Fit radial-based SVM in kernlab
+kernfit <- ksvm(x[train,],y[train], type = "C-svc", kernel = 'rbfdot', C = 1, scaled = c())
+# Plot training data
+plot(kernfit, data = x[train,])
+```
+
+Again, using tune to find the best cost for our data:
+
+```{r}
+# tune model to find optimal cost, gamma values
+tune.out <- tune(svm, y~., data = dat[train,], kernel = "radial",
+                 ranges = list(cost = c(0.1,1,10,100,1000)))
+# show best model
+tune.out$best.model
+```
+
+```{r}
+# validate model performance
+(valid <- table(true = dat[-train,"y"], pred = predict(tune.out$best.model,
+                                             newx = dat[-train,])))
+```
+
+# SVM on data with more than 2 classes
+
+```{r}
+# construct data set
+x <- rbind(x, matrix(rnorm(50*2), ncol = 2))
+y <- c(y, rep(0,50))
+x[y==0,2] <- x[y==0,2] + 2.5
+dat <- data.frame(x=x, y=as.factor(y))
+# plot data set
+ggplot(data = dat, aes(x = x.2, y = x.1, color = y, shape = y)) + 
+  geom_point(size = 2) +
+  scale_color_manual(values=c("#000000","#FF0000","#00BA00")) +
+  theme(legend.position = "none")
+```
+
+The commands don’t change for the e1071 package. We specify a cost and tuning parameter γ and fit a support vector machine. The results and interpretation are similar to two-class classification.
+
+```{r}
+# fit model
+svmfit <- svm(y~., data = dat, kernel = "radial", cost = 10, gamma = 1)
+# plot results
+plot(svmfit, dat)
+```
+
+We can check to see how well our model fit the data by using the predict() command, as follows:
+
+```{r}
+# construct table
+ypred <- predict(svmfit, dat)
+(misclass <- table(predict = ypred, truth = dat$y))
+```
+
+The kernlab package, on the other hand, can fit more than 2 classes, but cannot plot the results. To visualize the results of the ksvm function, we take the steps listed below to create a grid of points, predict the value of each point, and plot the results:
+
+```{r}
+# fit and plot
+kernfit <- ksvm(as.matrix(dat[,2:1]),dat$y, type = "C-svc", kernel = 'rbfdot', 
+                C = 100, scaled = c())
+
+# Create a fine grid of the feature space
+x.1 <- seq(from = min(dat$x.1), to = max(dat$x.1), length = 100)
+x.2 <- seq(from = min(dat$x.2), to = max(dat$x.2), length = 100)
+x.grid <- expand.grid(x.2, x.1)
+
+# Get class predictions over grid
+pred <- predict(kernfit, newdata = x.grid)
+
+# Plot the results
+cols <- brewer.pal(3, "Set1")
+plot(x.grid, pch = 19, col = adjustcolor(cols[pred], alpha.f = 0.05))
+
+classes <- matrix(pred, nrow = 100, ncol = 100)
+contour(x = x.2, y = x.1, z = classes, levels = 1:3, labels = "", add = TRUE)
+
+points(dat[, 2:1], pch = 19, col = cols[predict(kernfit)])
+```
+
+To conclude, SVM is a robust classification method that can be used on easy or difficult datasets 
+to separate data with 2 or more classes.
+Because it's a 'black box', it's very useful as long as you don't need to know what is 
+happening behind the scenes.
+

@@ -1,0 +1,106 @@
+---
+title: "Feature Selection"
+author: "Romi Goldner Kabeli"
+date: "March 29, 2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+Today we are going to go over feature selection.
+Selecting the right features in your data can יhave a lot of effect of the performance 
+of different models.
+
+The caret R package provides tools to automatically report on the relevance and importance 
+of attributes in your data and even select the most important features for you. 
+We will use this package today.
+
+## Remove Redundant Features
+
+Different datasets will contain different features. Some will be highly correlated 
+with each-other and some won't. We want to understand the different correlations between the
+features because highly correlated features will have a better affect on many methods.
+
+In the following code we will use the Pima Indians Diabetes dataset that contains a number of biological 
+attributes from medical reports. 
+
+Generally, you want to remove attributes with an absolute correlation of 0.75 or higher.
+
+```{r}
+# load packages
+library(mlbench) # for diabetes dataset
+library(caret)
+library(corrplot)
+```
+
+
+```{r}
+# ensure the results are repeatable
+set.seed(7)
+# load the data
+data(PimaIndiansDiabetes)
+# calculate correlation matrix
+correlationMatrix <- cor(PimaIndiansDiabetes[,1:8])
+# display the correlation matrix
+corrplot(correlationMatrix, method="number")
+```
+
+```{r}
+# find attributes that are highly corrected (ideally > 0.75)
+highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.5)
+# print indexes of highly correlated attributes
+print(highlyCorrelated)
+```
+
+In the above results we see that attribute #8, age, is highly correlated with the pregnant attribute.
+For this reason we could remove the age attribute but it's not mandatory.
+Ideally you would want to remove attribute that is correlated 0.75 or above.
+
+## Rank Features By Importance
+
+The importance of features can be estimated from data by building a model. 
+Some methods like decision trees have a built in mechanism to report on variable importance (we will see this in a future practice). For other algorithms, the importance can be estimated using a ROC curve analysis conducted for each attribute.
+
+We will continue with the same dataset from above. The varImp is then used to estimate the variable importance, which is printed and plotted. Here we are using the logistic regression method to train, but we won't talk about it in further detail.
+We will start learning about training and ML algorithms starting next practice.
+
+```{r}
+# prepare training scheme (to control parameters during training)
+control <- trainControl(method="repeatedcv", number=10, repeats=3)
+# train the model (here we are using logistic regression)
+model <- train(diabetes~., data=PimaIndiansDiabetes, method="multinom", preProcess="scale", trControl=control)
+# estimate variable importance
+importance <- varImp(model, scale=FALSE)
+# summarize importance
+print(importance)
+# plot importance
+plot(importance)
+```
+
+We see that the glucose, mass and pregnant attributes are the top 3 most important attributes in the dataset and the triceps attribute is the least important. The importance of different features will vary using different methods. 
+
+## Feature Selection
+
+The third technique for feature selection we'll see is automatic feature selection. 
+A popular automatic method for feature selection provided by the caret R package is called Recursive Feature Elimination or RFE.
+
+Again, we will continue to use the diabetes dataset for demonstration. A Random Forest algorithm is used on each iteration to evaluate the model (we will learn about it in Practice 6). The algorithm is configured to explore all possible subsets of the attributes. All 8 attributes are selected in this example, although in the plot showing the accuracy of the different attribute subset sizes, we can see that just 6 attributes gives almost comparable results.
+
+```{r}
+# define the control using a random forest selection function
+control <- rfeControl(functions=rfFuncs, method="cv", number=10)
+# run the RFE algorithm
+results <- rfe(PimaIndiansDiabetes[,1:8], PimaIndiansDiabetes[,9], sizes=c(1:8), rfeControl=control)
+# summarize the results
+print(results)
+# list the chosen features
+predictors(results)
+# plot the results
+plot(results, type=c("g", "o"))
+```
+
+So what did we learn?
+- How to remove redundant features from your dataset.
+- How to rank features in your dataset by their importance.
+- How to select features from your dataset using the Recursive Feature Elimination method.
+
