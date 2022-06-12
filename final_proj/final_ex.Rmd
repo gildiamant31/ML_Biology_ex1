@@ -23,6 +23,12 @@ library(mlbench) # for diabetes dataset
 library(caret)
 library(corrplot)
 library(vip)        # for variable importance plots
+library(klaR)
+library(psych)
+library(MASS)
+library(devtools)
+install_github('fawda123/ggord')
+library(ggord)
 ```
 
 create theme for all prediction results plots:
@@ -55,6 +61,10 @@ Firstly, lets observe the properties of the data:
 ```{r}
 #show data as str
 str(cancer_patient)
+```
+```{r}
+#show data dim
+dim(cancer_patient)
 ```
 
 look for NA/inf valuse
@@ -92,8 +102,17 @@ highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.85)
 print(highlyCorrelated)
 ```
 
+A good way to see some statistics about the data is using the "psych" package with the pairs.panels command:
 
+```{r}
+# view data
+# I chose random columns
+pairs.panels(cancer_patient[4:8],
+             gap = 0,
+             bg = c("red", "green", "blue")[cancer_patient$Level],
+             pch = 21)
 
+```
 
 
 Our data is about wheat seeds, its have observations on 199 wheat seeds with 8 variables.
