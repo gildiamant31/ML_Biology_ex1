@@ -1,0 +1,140 @@
+---
+title: "Tirgul 9 - LDA"
+author: "Romi Goldner Kabeli"
+date: "12/05/2022"
+output:
+  html_document:
+    theme: readable
+    highlight: tango
+---
+
+Today we'll look at a few basic examples of employing Linear Discriminant Analysis (LDA) to classify our data. 
+To keep things simple we'll work on the Iris dataset.
+
+```{r}
+library(klaR)
+library(psych)
+library(MASS)
+library(devtools)
+```
+
+```{r}
+# install ggord with commands below
+# library(devtools)
+# install_github('fawda123/ggord')
+library(ggord)
+```
+
+```{r}
+# load and look at data
+data("iris")
+str(iris)
+```
+
+A good way to see some statistics about the data is using the "psych" package with the pairs.panels command:
+
+```{r}
+# view data
+pairs.panels(iris[1:4],
+             gap = 0,
+             bg = c("red", "green", "blue")[iris$Species],
+             pch = 21)
+```
+
+Above we can see the scatter plots below the diagonal, histograms on the diagonal, and the Pearson correlation above the diagonal.
+
+We can see a strong correlation between petal length and width, and some separation between the red dots and the other dots (green and blue).
+
+Next we split our data into test and train sets :
+
+```{r}
+# train test split
+set.seed(123)
+ind <- sample(2, nrow(iris),
+              replace = TRUE,
+              prob = c(0.7, 0.3))
+training <- iris[ind==1,]
+testing <- iris[ind==2,]
+```
+
+And we are ready to begin!
+
+## LDA
+
+Linear Discriminant Analysis (LDA) is a statistical method that can be used both for dimensionality reduction (Similar to PCA, tSNE and UMAP) and for classification (like linear regression, for example).
+
+LDA works on continuous variables, and is considered a supervised method.
+
+```{r}
+# apply LDA
+linear <- lda(Species~., training)
+linear
+attributes(linear)
+```
+
+We can see that LD1 is very strong, explaining pretty much all the variance in our data, so we know to focus on it. 
+Lets make some graphs to look at LD1:
+
+### Histogram
+
+```{r}
+# Historgram using LDA1
+p <- predict(linear, training)
+ldahist(data = p$x[,1], g = training$Species)
+```
+
+We can see that while Setosa is clearly not overlapping with the other groups, Versicolor and Virginica are much closer and could potentially allow for some mis-clasification.
+
+Just to confirm our previous conclusion, lets look at LD2 as well:
+
+```{r}
+ldahist(data = p$x[,2], g = training$Species)
+```
+
+Indeed, LD2 is all over the place, and would not contribute to classification.
+
+### bi-plot
+
+```{r}
+ggord::ggord(linear, training$Species, ylim = c(-10, 10))
+```
+
+We can see from the bi-plot that Setosa was mostly seperated by its sepal width, while Versicolor and Virginica by their petals.
+
+### Partition plot
+
+Using a partition plot, we can see how using different axes gives different error rates and separation. Notice that allowing for QDA (Quadratic Discrimination Analysis) improves the results slightly for some combinations of axes. QDA is a variant of LDA in which an individual covariance matrix is estimated for every class of observations.
+
+```{r}
+# partition plot
+partimat(Species~., data = training, method = "lda")
+
+partimat(Species~., data = training, method = "qda")
+```
+
+### Confusion matrix and accuracy – training data
+
+```{r}
+# prediction - training data
+p1 <- predict(linear, training)$class
+tab <- table(Predicted = p1, Actual = training$Species)
+tab
+
+sum(diag(tab))/sum(tab)
+```
+
+A flawless prediction, at least on the training data. Let's see how well this translates to the test data
+
+### Confusion matrix and accuracy – testing data
+
+```{r}
+# prediction - test data
+p2 <- predict(linear, testing)$class
+tab1 <- table(Predicted = p2, Actual = testing$Species)
+tab1
+
+sum(diag(tab1))/sum(tab1)
+```
+
+In this practice we went over the LDA algorithm, which is another algorithm that can be used
+for classification. 
