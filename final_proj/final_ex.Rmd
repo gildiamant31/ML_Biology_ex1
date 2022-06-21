@@ -81,7 +81,7 @@ prop.table(table(cancer_patient$Level))
 
 # data selection
 
-corration
+corrlation
 
 ```{r}
 # ensure the results are repeatable
@@ -100,18 +100,6 @@ correlationMatrix <- cor(cancer_patient_sel[,2:22])
 highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.85)
 # print indexes of highly correlated attributes
 print(highlyCorrelated)
-```
-
-A good way to see some statistics about the data is using the "psych" package with the pairs.panels command:
-
-```{r}
-# view data
-# I chose random columns
-pairs.panels(cancer_patient[4:8],
-             gap = 0,
-             bg = c("red", "green", "blue")[cancer_patient$Level],
-             pch = 21)
-
 ```
 
 
