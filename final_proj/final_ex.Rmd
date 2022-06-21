@@ -19,8 +19,6 @@ library(ISLR)         # contains example data set "Khan"
 library(RColorBrewer) # customized coloring of plots
 library(ggplot2) # load the ggplot2 library
 library(readxl)
-library(dplyr)
-library(tidyverse)
 library(scales)
 library(gmodels)
 library(C50)
@@ -32,8 +30,12 @@ library(klaR)
 library(psych)
 library(MASS)
 library(devtools)
-install_github('fawda123/ggord')
+# install_github('fawda123/ggord')
 library(ggord)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(purrr)
 ```
 
 create theme for all prediction results plots:
@@ -66,11 +68,10 @@ Firstly, lets observe the properties of the data:
 ```{r}
 #show data as str
 str(cancer_patient)
-```
-```{r}
 #show data dim
 dim(cancer_patient)
 ```
+
 
 look for NA/inf valuse
 
@@ -100,8 +101,8 @@ highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.85)
 # print indexes of highly correlated attributes
 print(highlyCorrelated)
 
-cancer_patient_sel <-select(cancer_patient, -c(`OccuPational Hazards`,`Alcohol use`))
-correlationMatrix <- cor(cancer_patient_sel[,2:22])
+cancer_patient <-select(cancer_patient, -c(`Dust Allergy`,,`OccuPational Hazards`,`Genetic Risk`,`Chest Pain`))
+correlationMatrix <- cor(cancer_patient[,2:20])
 highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.85)
 # print indexes of highly correlated attributes
 print(highlyCorrelated)
@@ -130,7 +131,7 @@ The pca can be very useful in all of our analyzes for showing our data in 2D gra
 
 ```{r}
 # Preform PCA on our data
-prcomp_cancer_patient <- prcomp(cancer_patient[, 2:24])
+prcomp_cancer_patient <- prcomp(cancer_patient[, 2:20])
 # bind between 2 first pcas and our dataframe
 pca_cancer_patient <-  cbind(cancer_patient,PC1 = prcomp_cancer_patient$x[, 1],PC2 = prcomp_cancer_patient$x[, 2])
 ```
@@ -145,7 +146,12 @@ ggplot(pca_cancer_patient, aes(y=PC1, x = PC2, col=Level)) +
   ggtitle("cancer patient Dataset")
 
 ```
-we can see that our data is almost linearly separable 
+pca gave as moderate results, lets check our vatiance in the 4 firsts pcs
+```{r}
+# calculate variance of the 4 firsts pcs
+print(round(prcomp_cancer_patient$sdev[1:4] / sum(prcomp_cancer_patient$sdev) * 100, 2))
+```
+we didnt got high precentage in the variace, so its maybe the cause of the  moderate results
 
 last thing to look at the distribution of the labels:
 ```{r}
@@ -172,7 +178,7 @@ we saw above that the range of value is different between properties.
 Because we don't want that it will affect the importance of each property, we standardize the data with z-score.
 ```{r}
 # z-score standardization (on the feuters columns only)
-cancer_patient_z <- cbind(as.data.frame(scale(pca_cancer_patient[2:24])),pca_cancer_patient[25:27])
+cancer_patient_z <- cbind(as.data.frame(scale(pca_cancer_patient[2:20])),pca_cancer_patient[21:23])
 
 ```
 
@@ -201,6 +207,7 @@ cancer_test_labels <- cancer_patient_z$Level[801:1000]
 
 
 Lets plot the train set and the test set:
+# TODO remove
 ```{r}
 ##### Visualize the Split #####
 
@@ -227,11 +234,11 @@ grid.arrange(c1,c2, nrow = 1)
 library(class) 
 ```
 
-And finally, we are ready to run our algorithm. We'll start with K=2 as arbitrary hyper-parameter, and check another options if its wont be good.
+And finally, we are ready to run our algorithm. We'll start with K=3 as arbitrary hyper-parameter, and check another options if its wont be good.
 
 ```{r}
 # get predictions for the test set from knn, send as input the features columns and the train labels 
-cancer_test_pred_z <- knn(train = cancer_train_z[1:23], test = cancer_test_z[1:23], cl = cancer_train_labels, k=2)
+cancer_test_pred_z <- knn(train = cancer_train_z[1:19], test = cancer_test_z[1:19], cl = cancer_train_labels, k=3)
 ```
 
 Since the knn function returns a factor vector of the predicted values, we'll compare that vector with the true labels we saved in advance. We'll do the comparison with the CrossTable function, from the gmodels package we'll load: 
@@ -261,24 +268,27 @@ one of type 1 were mistakenly predicted as type 2.
 Two of the mistakes make some sense because one is on the borders between group, and one is outlayer.
 The all other predictions were correct.
 
+#TODO 100% no need improving
+# TODO remove
+
 ### improving the algorithem
 
 Lets try min-max normalization instead of  z-score standardization :
 Create a simple normalization function (min/max normalization):
 
 ```{r}
-# create the min/max normalization function:
-normalize <- function(x) {
-return ((x - min(x)) / (max(x) - min(x)))
-}
+# # create the min/max normalization function:
+# normalize <- function(x) {
+# return ((x - min(x)) / (max(x) - min(x)))
+# }
 
 ```
 
 Use the normalization function on our data:
 
 ```{r}
-# normlize features columns.
-cancer_n <- cbind(lapply(pca_cancer_patient[2:24], normalize),pca_cancer_patient[25:27])
+# # normlize features columns.
+# cancer_n <- cbind(lapply(pca_cancer_patient[2:24], normalize),pca_cancer_patient[25:27])
 
 ```
 
@@ -286,16 +296,16 @@ repeat the previous steps (divide the data into train and test, classify, and co
 
 
 ```{r}
-#setting a seed for reproducible results
-set.seed(1234)
-# create train set
-cancer_n_train <- cancer_n[1:800, ]
-# create test set
-cancer_n_test <- cancer_n[801:1000, ]
-# use knn algorithem
-knn_pred_2 <- knn(train=cancer_n_train[1:23], test=cancer_n_test[1:23], cl=cancer_train_labels, k=2)
-# check performance
-CrossTable(x = cancer_test_labels, y = knn_pred_2, prop.chisq=FALSE)
+# #setting a seed for reproducible results
+# set.seed(1234)
+# # create train set
+# cancer_n_train <- cancer_n[1:800, ]
+# # create test set
+# cancer_n_test <- cancer_n[801:1000, ]
+# # use knn algorithem
+# knn_pred_2 <- knn(train=cancer_n_train[1:23], test=cancer_n_test[1:23], cl=cancer_train_labels, k=2)
+# # check performance
+# CrossTable(x = cancer_test_labels, y = knn_pred_2, prop.chisq=FALSE)
 ```
 We have improvement, and there is only 2 mistakes.  
 
@@ -304,13 +314,36 @@ Lets try different values of 'k' to see its impact on the algorithm performance:
 because our dataset is not big, we can try many different 'k' in reasonable ruining time.
 we took 1-40 k values and run this algorithm 40 times for each different hyper-parameter.
 ```{r}
+# #setting a seed for reproducible results
+# set.seed(1234)
+# # loop over 40 different k values and saved the accuracy of algorithm prediction in array
+# i=1
+# k_options=1
+# for (i in 1:40){
+# knn_pred <- knn(train=cancer_n_train[1:23], test=cancer_n_test[1:23], cl=cancer_train_labels, k=i)
+# k_options[i] <- 100 * sum(cancer_test_labels == knn_pred)/NROW(cancer_test_labels)
+# }
+# 
+# 
+# # show the differences of the accuracy for each k value in a plot.
+# plot(k_options, type="b", xlab="K- Value",ylab="Accuracy level", main = "knn model accuracy for different k values")
+```
+The results shown above can easly explained - if we use too small 'k' then we dont check big enough group of neighbors, but if we choose 
+to much big 'k', we are checking samples  that are not neighbors at all.
+# TODO remove until here
+
+
+
+# version of z-normaliztion
+
+```{r}
 #setting a seed for reproducible results
 set.seed(1234)
 # loop over 40 different k values and saved the accuracy of algorithm prediction in array
 i=1
 k_options=1
 for (i in 1:40){
-knn_pred <- knn(train=cancer_n_train[1:23], test=cancer_n_test[1:23], cl=cancer_train_labels, k=i)
+knn_pred <- knn(train=cancer_train_z[1:19], test=cancer_test_z[1:19], cl=cancer_train_labels, k=i)
 k_options[i] <- 100 * sum(cancer_test_labels == knn_pred)/NROW(cancer_test_labels)
 }
 
@@ -318,17 +351,14 @@ k_options[i] <- 100 * sum(cancer_test_labels == knn_pred)/NROW(cancer_test_label
 # show the differences of the accuracy for each k value in a plot.
 plot(k_options, type="b", xlab="K- Value",ylab="Accuracy level", main = "knn model accuracy for different k values")
 ```
-The results shown above can easly explained - if we use too small 'k' then we dont check big enough group of neighbors, but if we choose 
-to much big 'k', we are checking samples  that are not neighbors at all.
-
-
-Use KNN with k between 3 to ~28 and got only one mistake as we can see here :
+# TODO remove
+Use KNN with k between 3 to ~8 and got only one mistake as we can see here :
 
 ```{r}
-#setting a seed for reproducible results
-set.seed(1234)
-knn_pred_k5 <- knn(train=cancer_n_train[1:23], test=cancer_n_test[1:23], cl=cancer_train_labels, k=5)
-CrossTable(x = cancer_test_labels, y = knn_pred_k5, prop.chisq=FALSE)
+# #setting a seed for reproducible results
+# set.seed(1234)
+# knn_pred_k5 <- knn(train=cancer_n_train[1:23], test=cancer_n_test[1:23], cl=cancer_train_labels, k=5)
+# CrossTable(x = cancer_test_labels, y = knn_pred_k5, prop.chisq=FALSE)
 ```
 
 As we saw, we can use KNN to as multi-class classifier algorithm.
@@ -344,20 +374,42 @@ We choose Decision-Tree model for our next model
 ##  SVM:
 
 # SVM on data with more than 2 classes
-
 ```{r}
-# construct data set
-x <- rbind(x, matrix(rnorm(50*2), ncol = 2))
-y <- c(y, rep(0,50))
-x[y==0,2] <- x[y==0,2] + 2.5
-dat <- data.frame(x=x, y=as.factor(y))
-# plot data set
-ggplot(data = pca_cancer_patient, aes(x = PC1, y = PC2, color = Level, shape = Level)) + 
-  geom_point(size = 2) +
-  scale_color_manual(values=c("#000000","#FF0000","#00BA00")) +
-  theme(legend.position = "none")
+library(kernlab)      # SVM methodology
+library(e1071)        # SVM methodology
+library(Matrix)
 ```
 
+```{r}
+c_p_svm = as.matrix(cancer_patient_z[1:19])
+# fit model
+svmfit <- svm(x=c_p_svm, y=cancer_patient_z$Level, kernel = "radial", cost = 10, gamma = 1)
+# plot results
+plot(svmfit, cancer_patient_z)
+```
+
+```{r}
+# fit and plot
+kernfit <- ksvm(as.matrix(dat[,2:1]),dat$y, type = "C-svc", kernel = 'rbfdot', 
+                C = 100, scaled = c())
+
+# Create a fine grid of the feature space
+x.1 <- seq(from = min(dat$x.1), to = max(dat$x.1), length = 100)
+x.2 <- seq(from = min(dat$x.2), to = max(dat$x.2), length = 100)
+x.grid <- expand.grid(x.2, x.1)
+
+# Get class predictions over grid
+pred <- predict(kernfit, newdata = x.grid)
+
+# Plot the results
+cols <- brewer.pal(3, "Set1")
+plot(x.grid, pch = 19, col = adjustcolor(cols[pred], alpha.f = 0.05))
+
+classes <- matrix(pred, nrow = 100, ncol = 100)
+contour(x = x.2, y = x.1, z = classes, levels = 1:3, labels = "", add = TRUE)
+
+points(dat[, 2:1], pch = 19, col = cols[predict(kernfit)])
+```
 
 
 ```{r}
