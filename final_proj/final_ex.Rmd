@@ -146,12 +146,13 @@ ggplot(pca_cancer_patient, aes(y=PC1, x = PC2, col=Level)) +
   ggtitle("cancer patient Dataset")
 
 ```
-pca gave as moderate results, lets check our vatiance in the 4 firsts pcs
+pca gave as moderate results, lets check our variance - explaning in the 4 firsts pc components
 ```{r}
-# calculate variance of the 4 firsts pcs
+# variance of the 4 firsts pc components
 print(round(prcomp_cancer_patient$sdev[1:4] / sum(prcomp_cancer_patient$sdev) * 100, 2))
 ```
-we didnt got high precentage in the variace, so its maybe the cause of the  moderate results
+as showed above - the pc components explain smal part of the variance in the data, and this is probabaly the couse to the moderate success in the separation of the sampels.
+maybe that is because our data are not lineary seperable, and pca is a linear algorithem.
 
 last thing to look at the distribution of the labels:
 ```{r}
@@ -373,59 +374,27 @@ We choose Decision-Tree model for our next model
 
 ##  SVM:
 
+#TODO try linear svm to show the difference
+
+
 # SVM on data with more than 2 classes
-```{r}
-library(kernlab)      # SVM methodology
-library(e1071)        # SVM methodology
-library(Matrix)
-```
-
-```{r}
-c_p_svm = as.matrix(cancer_patient_z[1:19])
-# fit model
-svmfit <- svm(x=c_p_svm, y=cancer_patient_z$Level, kernel = "radial", cost = 10, gamma = 1)
-# plot results
-plot(svmfit, cancer_patient_z)
-```
-
-```{r}
-# fit and plot
-kernfit <- ksvm(as.matrix(dat[,2:1]),dat$y, type = "C-svc", kernel = 'rbfdot', 
-                C = 100, scaled = c())
-
-# Create a fine grid of the feature space
-x.1 <- seq(from = min(dat$x.1), to = max(dat$x.1), length = 100)
-x.2 <- seq(from = min(dat$x.2), to = max(dat$x.2), length = 100)
-x.grid <- expand.grid(x.2, x.1)
-
-# Get class predictions over grid
-pred <- predict(kernfit, newdata = x.grid)
-
-# Plot the results
-cols <- brewer.pal(3, "Set1")
-plot(x.grid, pch = 19, col = adjustcolor(cols[pred], alpha.f = 0.05))
-
-classes <- matrix(pred, nrow = 100, ncol = 100)
-contour(x = x.2, y = x.1, z = classes, levels = 1:3, labels = "", add = TRUE)
-
-points(dat[, 2:1], pch = 19, col = cols[predict(kernfit)])
-```
-
 
 ```{r}
 # fit model
-classifier <- svm(Level~ ., data = cancer_n_train[1:24], kernel = "radial", cost = 10, gamma = 1)
-print(svmfit)
-svm_pred = predict(classifier, newdata = cancer_n_test[1:24])
+classifier <- svm(Level~ ., data = cancer_train_z[1:20], kernel = "radial", cost = 10, gamma = 1)
+print(classifier)
+svm_pred = predict(classifier, newdata = cancer_test_z[1:19])
 
 library(gmodels)
 # show preformence in table
 CrossTable(x = cancer_test_labels, y = svm_pred, prop.chisq=FALSE)
 
 #knn_model contains only preicted value
-test_v_1 <- cbind(cancer_n_test,svm_pred)
+test_v_1 <- cbind(cancer_test_z,svm_pred)
 #This will return TRUE or FALSE.
 test_v_1$Correct <- test_v_1$Level == test_v_1$svm_pred
+
+
 
 # again here we also plot the types according two PCA with TRUE or FALSE labeling, and color of the true lable
 ggplot(test_v_1, aes(y=PC1, x = PC2, col=cancer_test_labels, label = Correct, shape = Level)) +
@@ -436,6 +405,8 @@ ggplot(test_v_1, aes(y=PC1, x = PC2, col=cancer_test_labels, label = Correct, sh
   ggtitle("SVM Prediction Results") + 
   geom_text(size = 3, show.legend = FALSE)
 
+
+# TODO remove
 # plot data set
 ggplot(test_v_1, aes(y=PC1, x = PC2, col=cancer_test_labels, label = Correct, shape = Level)) + 
   geom_point(size = 2) +
@@ -443,36 +414,13 @@ ggplot(test_v_1, aes(y=PC1, x = PC2, col=cancer_test_labels, label = Correct, sh
   theme(legend.position = "bottom")
 ```
 
- ניסיתי את הדבר הבא וזה לא הצליח!!!
- 
- The kernlab package, on the other hand, can fit more than 2 classes, but cannot plot the results. To visualize the results of the ksvm function, we take the steps listed below to create a grid of points, predict the value of each point, and plot the results:
-
+# TODO tune cost?
 ```{r}
-# fit and plot
-kernfit <- ksvm(as.matrix(cancer_n_train[1:23]),cancer_n_train$Level, type = "C-svc", kernel = 'rbfdot', 
-                C = 100, scaled = c())
-
-# Create a fine grid of the feature space
-x.1 <- seq(from = min(cancer_n_train$PC1), to = max(cancer_n_train$PC1), length = 100)
-x.2 <- seq(from = min(cancer_n_train$PC2), to = max(cancer_n_train$PC2), length = 100)
-x.grid <- expand.grid(x.2, x.1)
-
-# Get class predictions over grid
-kern_pred <- predict(kernfit, newdata = cancer_n_test[1:24])
-
-# Plot the results
-cols <- brewer.pal(3, "Set1")
-plot(x.grid, pch = 19, col = adjustcolor(cols[pred], alpha.f = 0.05))
-
-classes <- matrix(pred, nrow = 100, ncol = 100)
-contour(x = x.2, y = x.1, z = classes, levels = 1:3, labels = "", add = TRUE)
-
-points(dat[, 2:1], pch = 19, col = cols[predict(kernfit)])
+# tune model to find optimal cost, gamma values
+tune.out <- tune(svm, Level~ ., data = cancer_train_z[1:20], kernel = "radial",ranges = list(cost = c(0.1,1,10,100,1000)))
+# show best model
+tune.out$best.model
 ```
-
-
-
-
 
 
 
@@ -495,11 +443,11 @@ The test is small so it is make sense that the distribution is not completely pr
 #setting a seed for reproducible results
 set.seed(1234)
 # apply model in training data (8th column is the label to be predicted)
-cancer_model <- C5.0(cancer_n_train[1:7], cancer_train_labels)
+cancer_model <- C5.0(cancer_train_z[1:19], cancer_train_labels)
 #take a look at our model
 cancer_model %>% vip()
 ```
-We can see that our tree relay hard on only 3 of the features and maybe its decrease our performance.
+We can see that our tree relay hard on only 5 of the features and maybe its decrease our performance.
 Another way to look about it that we can see that we got 92% accuracy relaying on this feautres so we can said that the type of seed can be nicly predited by its kernel-grove, area and asymmetry-coeff
 
 Next we'll look at the summary of the model. 
@@ -507,7 +455,6 @@ Next we'll look at the summary of the model.
 ```{r}
 summary(cancer_model)
 ```
-Our tree is very short, according to the small number of the seeds features
 
 The numbers in parentheses indicate the number of examples meeting the criteria for
 that decision, and the number incorrectly classified by the decision. 
@@ -519,7 +466,7 @@ As we now know, it is very important to evaluate our model performance:
 #setting a seed for reproducible results
 set.seed(1234)
 # apply model on test data
-cancer_pred <- predict(cancer_model, cancer_n_test[1:23])
+cancer_pred <- predict(cancer_model, cancer_test_z[1:19])
 
 CrossTable(cancer_test_labels, cancer_pred, prop.chisq = FALSE,
            prop.c = FALSE, prop.r = FALSE, 
@@ -527,7 +474,7 @@ CrossTable(cancer_test_labels, cancer_pred, prop.chisq = FALSE,
 
 #DT_Model merge
 #pred contains only predicted value
-test_merged1 <- cbind(cancer_n_test,cancer_pred)
+test_merged1 <- cbind(cancer_test_z,cancer_pred)
 test_merged1$Correct <- test_merged1$Level == 
   test_merged1$cancer_pred #This will return TRUE or FALSE.
 
@@ -562,12 +509,14 @@ suggests that this reduces error rates on test data by about 25 percent:
 # boosting with 10 trials (on training)
 #setting a seed for reproducible results
 set.seed(1234)
-cancer_boost10 <- C5.0(cancer_n_train[1:23], cancer_train_labels, trials = 10)
+cancer_boost10 <- C5.0(cancer_train_z[1:19], cancer_train_labels, trials = 10)
 
 cancer_boost10 %>% vip()
 
 ```
-now we have more imprtant variables which can improve 
+# TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+למחוק את הפסקה למטה כי הבוסטינג לא שינה גלום
 
 
 Let's take a look about the predictions results after boosting:
@@ -605,6 +554,54 @@ plot two type of DT predictions:
 ```{r}
 grid.arrange(c1,c2, nrow = 1)
 # True on each point means that it is correct prediction, FALSE means wrong prediction
+```
+
+עד כאן למחוק
+
+# TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+```{r}
+# apply LDA
+linear <- lda(Level~., cancer_train_z[1:20])
+#  calculate lda poprportins
+lda_porpotions = signif(prop.table(linear$svd^2),3)
+# take a look to see how the ldas explaning our data:
+print("LDA1   LDA2")
+print( paste0(as.character(lda_porpotions[1]),"  ", as.character(lda_porpotions[2])))
+```
+
+```{r}
+# Historgram using LDA1
+p <- predict(linear, cancer_train_z[1:20])
+ldahist(data = p$x[,1], g = cancer_train_z$Level)
+ldahist(data = p$x[,2], g = cancer_train_z$Level)
+```
+we can see not perfect sepetration in LD1 but we also can see the range of Low -> Medium -> High
+
+### bi-plot
+
+```{r}
+ggord::ggord(linear, cancer_train_z$Level, ylim = c(-5, 5),txt = NULL)
+```
+### Confusion matrix and accuracy – training data
+
+```{r}
+# prediction - training data
+p1 <- predict(linear, cancer_train_z[1:19])$class
+tab <- table(Predicted = p1, Actual = cancer_train_z$Level)
+tab
+
+sum(diag(tab))/sum(tab)
+```
+### Confusion matrix and accuracy – testing data
+
+```{r}
+# prediction - test data
+p2 <- predict(linear,  cancer_test_z[1:19])$class
+tab1 <- table(Predicted = p2, Actual = cancer_test_z$Level)
+tab1
+
+sum(diag(tab1))/sum(tab1)
 ```
 
 ### Comparing between the two models:
