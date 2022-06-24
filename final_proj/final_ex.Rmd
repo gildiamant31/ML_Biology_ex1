@@ -101,7 +101,7 @@ highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.85)
 # print indexes of highly correlated attributes
 print(highlyCorrelated)
 
-cancer_patient <-dplyr::select(cancer_patient, -c(`Dust Allergy`,,`OccuPational Hazards`,`Genetic Risk`,`Chest Pain`))
+cancer_patient <-dplyr::select(cancer_patient, -c(`Dust Allergy`,`OccuPational Hazards`,`Genetic Risk`,`Chest Pain`))
 correlationMatrix <- cor(cancer_patient[,2:20])
 highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.85)
 # print indexes of highly correlated attributes
