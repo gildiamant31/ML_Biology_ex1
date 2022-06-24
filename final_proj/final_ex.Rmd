@@ -85,7 +85,7 @@ any(total)
 prop.table(table(cancer_patient$Level))
 ```
 
-# data selection
+# data dplyr::selection
 
 correlation
 
@@ -101,7 +101,7 @@ highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.85)
 # print indexes of highly correlated attributes
 print(highlyCorrelated)
 
-cancer_patient <-select(cancer_patient, -c(`Dust Allergy`,,`OccuPational Hazards`,`Genetic Risk`,`Chest Pain`))
+cancer_patient <-dplyr::select(cancer_patient, -c(`Dust Allergy`,`OccuPational Hazards`,`Genetic Risk`,`Chest Pain`))
 correlationMatrix <- cor(cancer_patient[,2:20])
 highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.85)
 # print indexes of highly correlated attributes
@@ -207,6 +207,29 @@ cancer_test_labels <- cancer_patient_z$Level[801:1000]
 ```
 
 
+Lets plot the train set and the test set:
+# TODO remove
+```{r}
+##### Visualize the Split #####
+
+# again plot the types according two specific columns after PCA
+# plot pca for training
+c1 <- ggplot(cancer_train_z, aes(y=PC1, x = PC2, col=cancer_train_labels)) +
+  geom_jitter(size=5, alpha = 0.2) + 
+  theme_moma() +
+  theme(legend.position = "bottom") +
+  ggtitle("Train Set")
+# plot pca for training
+c2 <- ggplot(cancer_test_z, aes(y=PC1, x = PC2, col=cancer_test_labels)) +
+  geom_jitter(size=5, alpha = 0.2) + 
+  theme_moma() +
+  theme(legend.position = "bottom") +
+  ggtitle("Test Set")
+ 
+grid.arrange(c1,c2, nrow = 1)
+```
+
+
 'class' package for knn algorithm.
 ```{r}
 library(class) 
@@ -246,7 +269,69 @@ one of type 1 were mistakenly predicted as type 2.
 Two of the mistakes make some sense because one is on the borders between group, and one is outlayer.
 The all other predictions were correct.
 
+#TODO 100% no need improving
+# TODO remove
 
+### improving the algorithem
+
+Lets try min-max normalization instead of  z-score standardization :
+Create a simple normalization function (min/max normalization):
+
+```{r}
+# # create the min/max normalization function:
+# normalize <- function(x) {
+# return ((x - min(x)) / (max(x) - min(x)))
+# }
+
+```
+
+Use the normalization function on our data:
+
+```{r}
+# # normlize features columns.
+# cancer_n <- cbind(lapply(pca_cancer_patient[2:24], normalize),pca_cancer_patient[25:27])
+
+```
+
+repeat the previous steps (divide the data into train and test, classify, and compare the results to the true values):
+
+
+```{r}
+# #setting a seed for reproducible results
+# set.seed(1234)
+# # create train set
+# cancer_n_train <- cancer_n[1:800, ]
+# # create test set
+# cancer_n_test <- cancer_n[801:1000, ]
+# # use knn algorithem
+# knn_pred_2 <- knn(train=cancer_n_train[1:23], test=cancer_n_test[1:23], cl=cancer_train_labels, k=2)
+# # check performance
+# CrossTable(x = cancer_test_labels, y = knn_pred_2, prop.chisq=FALSE)
+```
+We have improvement, and there is only 2 mistakes.  
+
+Maybe we need to tune our 'k' parameter:
+Lets try different values of 'k' to see its impact on the algorithm performance:
+because our dataset is not big, we can try many different 'k' in reasonable ruining time.
+we took 1-40 k values and run this algorithm 40 times for each different hyper-parameter.
+```{r}
+# #setting a seed for reproducible results
+# set.seed(1234)
+# # loop over 40 different k values and saved the accuracy of algorithm prediction in array
+# i=1
+# k_options=1
+# for (i in 1:40){
+# knn_pred <- knn(train=cancer_n_train[1:23], test=cancer_n_test[1:23], cl=cancer_train_labels, k=i)
+# k_options[i] <- 100 * sum(cancer_test_labels == knn_pred)/NROW(cancer_test_labels)
+# }
+# 
+# 
+# # show the differences of the accuracy for each k value in a plot.
+# plot(k_options, type="b", xlab="K- Value",ylab="Accuracy level", main = "knn model accuracy for different k values")
+```
+The results shown above can easly explained - if we use too small 'k' then we dont check big enough group of neighbors, but if we choose 
+to much big 'k', we are checking samples  that are not neighbors at all.
+# TODO remove until here
 
 
 
@@ -267,6 +352,16 @@ k_options[i] <- 100 * sum(cancer_test_labels == knn_pred)/NROW(cancer_test_label
 # show the differences of the accuracy for each k value in a plot.
 plot(k_options, type="b", xlab="K- Value",ylab="Accuracy level", main = "knn model accuracy for different k values")
 ```
+# TODO remove
+Use KNN with k between 3 to ~8 and got only one mistake as we can see here :
+
+```{r}
+# #setting a seed for reproducible results
+# set.seed(1234)
+# knn_pred_k5 <- knn(train=cancer_n_train[1:23], test=cancer_n_test[1:23], cl=cancer_train_labels, k=5)
+# CrossTable(x = cancer_test_labels, y = knn_pred_k5, prop.chisq=FALSE)
+```
+
 As we saw, we can use KNN to as multi-class classifier algorithm.
 
 If we use 'k' in values of 3 - 25 then the KNN got very good results with only 1:39 mistakes.
@@ -310,6 +405,13 @@ ggplot(test_v_1, aes(y=PC1, x = PC2, col=cancer_test_labels, label = Correct, sh
   ggtitle("SVM Prediction Results") + 
   geom_text(size = 3, show.legend = FALSE)
 
+
+# TODO remove
+# plot data set
+ggplot(test_v_1, aes(y=PC1, x = PC2, col=cancer_test_labels, label = Correct, shape = Level)) + 
+  geom_point(size = 2) +
+  theme_moma() +
+  theme(legend.position = "bottom")
 ```
 
 # TODO tune cost?
@@ -389,7 +491,32 @@ show(c1)
 The performance here is a bit worse than its performance on the
 training data as expected,and also a bit worse than the best predictions in knn classifier.
 
-## LDA
+Lets try improving our model
+
+### Adaptive Boosting
+
+So, our model is not that great. Let's try and improve it next. C5.0 includes a feature called adaptive boosting. This is a process in which many decision trees are built and the trees vote on the best class for each example. 
+
+The C5.0() function makes it easy to add boosting to our C5.0 decision tree. We
+simply need to add an additional trials parameter indicating the number of
+separate decision trees to use in the boosted team. The trials parameter sets an
+upper limit; the algorithm will stop adding trees if it recognizes that additional 
+trials do not seem to be improving the accuracy. 
+We'll start with 10 trials, a number that has become the de facto standard, as research 
+suggests that this reduces error rates on test data by about 25 percent:
+
+```{r}
+# boosting with 10 trials (on training)
+#setting a seed for reproducible results
+set.seed(1234)
+cancer_boost10 <- C5.0(cancer_train_z[1:19], cancer_train_labels, trials = 10)
+
+cancer_boost10 %>% vip()
+
+```
+# TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+# TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 ```{r}
 # apply LDA
@@ -434,6 +561,13 @@ tab1
 
 sum(diag(tab1))/sum(tab1)
 ```
+
+
+##### worlk unti here !!!!!##############################################
+
+הקוד שמתחת צריל להתאים אותו לפרויקט שלנו
+
+
 
 ### Comparing between the two models:
 
