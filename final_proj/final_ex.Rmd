@@ -85,7 +85,7 @@ any(total)
 prop.table(table(cancer_patient$Level))
 ```
 
-# data selection
+# data dplyr::selection
 
 correlation
 
@@ -101,7 +101,7 @@ highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.85)
 # print indexes of highly correlated attributes
 print(highlyCorrelated)
 
-cancer_patient <-select(cancer_patient, -c(`Dust Allergy`,,`OccuPational Hazards`,`Genetic Risk`,`Chest Pain`))
+cancer_patient <-dplyr::select(cancer_patient, -c(`Dust Allergy`,,`OccuPational Hazards`,`Genetic Risk`,`Chest Pain`))
 correlationMatrix <- cor(cancer_patient[,2:20])
 highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.85)
 # print indexes of highly correlated attributes
@@ -516,48 +516,6 @@ cancer_boost10 %>% vip()
 ```
 # TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-למחוק את הפסקה למטה כי הבוסטינג לא שינה גלום
-
-
-Let's take a look about the predictions results after boosting:
-
-```{r}
-#setting a seed for reproducible results
-set.seed(1234)
-# boosting on test data
-cancer_boost_pred10 <- predict(cancer_boost10, cancer_n_test) 
-# present it on Crossable
-CrossTable(cancer_test_labels, cancer_boost_pred10,
-prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE,
-dnn = c('actual default', 'predicted default'))
-
-#DT_Model merge
-#pred10 contains only predicted value
-test_merged2 <- data.frame(cancer_n_test,cancer_boost_pred10,cancer_test_labels)
-test_merged2$Correct <- test_merged2$cancer_test_labels == 
-  test_merged2$cancer_boost_pred10 #This will return TRUE or FALSE.
-
-# again here we also plot the types according two specific columns after PCA
-c2 <-ggplot(test_merged2, aes(y=PC1, x = PC2, col=cancer_test_labels, label = Correct)) +
-  geom_point(size=5, alpha = 0.2) + 
-  theme_moma() +
-  theme(legend.position = "bottom") +
-  ggtitle("Improved DT Prediction Results") + 
-  geom_text(size = 3, show.legend = FALSE)
-show(c2)
-```
-we got small improvement in the results with only 2/39 mistaken classification which are very close to our results using knn.
-
-
-plot two type of DT predictions:
-
-```{r}
-grid.arrange(c1,c2, nrow = 1)
-# True on each point means that it is correct prediction, FALSE means wrong prediction
-```
-
-עד כאן למחוק
-
 # TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 ```{r}
@@ -603,6 +561,13 @@ tab1
 
 sum(diag(tab1))/sum(tab1)
 ```
+
+
+##### worlk unti here !!!!!##############################################
+
+הקוד שמתחת צריל להתאים אותו לפרויקט שלנו
+
+
 
 ### Comparing between the two models:
 
