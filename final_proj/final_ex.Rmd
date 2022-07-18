@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE, fig.width=8, fi
 
 load libraries 
 
-```{r}
+```{r echo=FALSE}
 set.seed(10)
 library(kernlab)      # SVM methodology
 library(e1071)        # SVM methodology
@@ -69,6 +69,7 @@ Firstly, lets observe the properties of the data:
 #show data as str
 str(cancer_patient)
 #show data dim
+print("data dimensions: ")
 dim(cancer_patient)
 ```
 The data is about classified the level of the cancer disease for a patient, determined by 23 various aspects of the patient (from age and gender to snoring or weight loss level).
@@ -96,14 +97,62 @@ From the results, we can see that -
 2. The classes are balanced, so the data is almost evenly distributed, and we should preserve it when splitting the data.
 
 
-Now, We are interested in creating a model with the ability to predict the level of the cancer for a patient, by its properties.
-
 The level is string, and we wish to make it 'factor' for being categorical.
 
 ```{r}
 # convert Type from numeric variable to factor (factor is an ordered object)
 cancer_patient$Level<-as.factor(cancer_patient$Level)
 ```
+
+# EDA
+
+After looking on our data set, we had some exploratory questions and we want to see whats the data can tell about them.
+
+Firstly, we asked if cancer condition is different between genders in our data
+
+```{r}
+
+ 
+ #change gender from number to word
+ cancer_patient_gender = cancer_patient
+ cancer_patient_gender$Gender[cancer_patient_gender$Gender==1] = "Male"
+ cancer_patient_gender$Gender[cancer_patient_gender$Gender==2] = "Female"
+ # create two plots
+ pM = ggplot(cancer_patient_gender[cancer_patient_gender$Gender=="Male",], aes(x = factor(1) , fill = Level)) +
+ geom_bar(width = 1) + facet_grid(cols = vars(Gender)) + coord_polar(theta = "y")+ xlab("") + ylab("") 
+ pF = ggplot(cancer_patient_gender[cancer_patient_gender$Gender=="Female",], aes(x = factor(1) , fill = Level)) +
+ geom_bar(width = 1) + facet_grid(cols = vars(Gender)) + coord_polar(theta = "y")+ xlab("") + ylab("") 
+ # show plots together
+ plot_grid(pM, pF, labels = "AUTO")
+
+
+```
+As shown it the graph above, the males have much bigger fraction of severe cancer.
+The difference can cause from many reasons, we wish to find a feature that connected both to men and cancer, and can partly explain the difference between genders.
+
+Smoking was our chosen feature because we know that smoking have strong connection to cancer and we thought that maybe men tend to smoke more.
+So the next test is if men tend to smoke more:
+```{r}
+ggplot(data = cancer_patient_gender, aes(x=Gender, y=Smoking, fill=Gender)) + geom_boxplot()+
+  theme_bw() +
+  labs(title = "smoking by gender")
+```
+As shown above, we saw that actually men tend to smoke more and the can partially explain the difference in the illness.
+
+last thing for the EDA, we ask if  snoring people is tend to be more tired because of difficulty in breathing in their Sleep.
+```{r}
+# check correlation between Snoring and Fatigue
+library("ggpubr")
+ggscatter(cancer_patient, x = "Snoring", y = "Fatigue", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Snoring", ylab = "Fatigue")
+```
+surprisingly we saw no significant correlation.
+
+
+
+Now, We are interested in creating a model with the ability to predict the level of the cancer for a patient, by its properties.
 
 
 Because our data contains many columns (23, the 1st is the patient_id and the 25th is the classification), we need a way to visualize most of the complexity represented in all dimensions in just two or three dimensions. Fortunately, that is exactly what dimension reduction does. Here, we apply a simple dimension reduction technique called principal component analysis (PCA) to all 23 numerical variables(the features) in the data set. 
