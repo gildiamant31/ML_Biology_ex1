@@ -385,7 +385,7 @@ show(c1)
 
 From the results we can see the we have 100% accuracy.
 
-Now we want to try and explore again if we can separate our data in linear way, but other than PCA. So we chose to use LDA, that focusing more on separation rather variation (like PCA).
+Now we want to try and explore again if we can separate our data in linear way, but other than PCA. So we chose to use LDA, that focusing more on separation rather than variation (like PCA). Moreover, 
 
 
 ## LDA
@@ -397,27 +397,34 @@ Lets run LDA -
 linear <- lda(Level~., cancer_train_z[1:24])
 #  calculate lda poprportins
 lda_porpotions = signif(prop.table(linear$svd^2),3)
-# take a look to see how the ldas explaning our data:
+# take a look to see how the ldas explaining our data:
 print("LDA1   LDA2")
 print( paste0(as.character(lda_porpotions[1]),"  ", as.character(lda_porpotions[2])))
 ```
 
+The LDA1 is high (0.888) which show that it has the best variation between categories that LDA create, and LDA2 is seconed one. Both of them are the vast majority to explain the variation between the categories for us (in contrast to the PCA1 and PCA2 we saw before). 
 
+Lets view the diffrence between the seperation of LDA1 and LDA2 - 
 ```{r}
-# Historgram using LDA1
+# Histogram using LDA1
 p <- predict(linear, cancer_train_z[1:24])
 ldahist(data = p$x[,1], g = cancer_train_z$Level)
 ldahist(data = p$x[,2], g = cancer_train_z$Level)
 ```
-we can see not perfect separation in LD1 but we also can see the range of Low -> Medium -> High
+We can see that the separation is not perfect -
+1. In LD1 there is overlap between Medium and Low.
+2. In LD2 there is overlap between all of the classes (Low,Medium,High).
+NOTE: the separation in LDA1 much better corresponding to the results before.
 
 ### bi-plot
-
+Lets view the LDA1/2 plot -
 ```{r}
 ggord::ggord(linear, cancer_train_z$Level, ylim = c(-5, 5),txt = NULL)
 ```
-### Confusion matrix and accuracy – training data
+From the plot we can see very good separation, although its not perfect, which corresponding to the results above.
 
+### Confusion matrix and accuracy – training data
+Lets get the classification on the data, start with the 'train' - 
 ```{r}
 # prediction - training data
 p1 <- predict(linear, cancer_train_z[1:23])$class
@@ -426,7 +433,11 @@ tab
 
 sum(diag(tab))/sum(tab)
 ```
+From the results we can see that we have 32 mistakes, 31 of them are Medium that classified as Low, which corresponding to the plot above (see the green(Low) and the blue(Medium) circles). As so, the accuracy 96%, good but not perfect.
+
+
 ### Confusion matrix and accuracy – testing data
+Lets get the classification on the 'test' data - 
 
 ```{r}
 # prediction - test data
@@ -436,75 +447,28 @@ tab1
 
 sum(diag(tab1))/sum(tab1)
 ```
+We can see that on the test we have 10 mistakes, again Medium that classified as Low, which corresponding to the plot above and to the train classification by the LDA. The accuracy is 95%,good but not perfect, corresponding to the train.
 
+Those results can imply us that the linear algorithm is not the best for our data.
 
-##### work until here !!!!!##############################################
-
-# TODO fix from here to the end. maybe remove all of it and write some comparsion
-
-### Comparing between the two models:
-
-compare the best models prediction results of both algorithms,
-This time we used colors to emphsize mistakes:
-```{r}
-#KNN_Model merge
-
-#knn_model contains only preicted value
-test_v_1 <- cbind(cancer_n_test,knn_pred_k5)
-#This will return TRUE or FALSE.
-test_v_1$Correct <- test_v_1$Level == test_v_1$knn_pred_k5 
-
-# again here we also plot the types according two specific columns after PCA
-c1 <-ggplot(test_v_1, aes(y=PC1, x = PC2, col=Correct,shape = Level ,label = Correct)) +
-  geom_point(size=5, alpha = 0.2) + 
-  theme_moma() +
-  theme(legend.position = "bottom") +
-  ggtitle("KNN Prediction Results") + 
-  geom_text(size = 3, show.legend = FALSE)
-c2 <-ggplot(test_merged2, aes(y=PC1, x = PC2, col=Correct,shape = Level ,label = Correct)) +
-  geom_point(size=5, alpha = 0.2) + 
-  theme_moma() +
-  theme(legend.position = "bottom") +
-  ggtitle("Improved DT Prediction Results") + 
-  geom_text(size = 3, show.legend = FALSE)
-# plot both in one line
-grid.arrange(c1,c2, nrow = 1)
-# True on each point means that it is correct prediction, FALSE means wrong prediction
-```
-We can see both of them are mistaken in the same sample, which look like its very hard to classify because its on the border.
-The DT also have anothe mistake which the knn are preventing from.
-
-
-compare the accuracy of each algorithm best model:
-```{r}
-# get accuracy of DT boost prediction
-DT_acc <- 100 * sum(cancer_test_labels == cancer_boost_pred10)/NROW(cancer_test_labels)
-# get accuracy of knn_k5 prediction
-KNN_acc <- 100 * sum(cancer_test_labels == knn_pred_k5)/NROW(cancer_test_labels)
-
-# create data frame with the accuracy to plot it.
-Algo <- c("DT","KNN")
-Accuracy <- c(DT_acc,KNN_acc)
-df <- data.frame(Algo, Accuracy)
-ggplot(data = df ,mapping = aes(x=Algo, y= Accuracy, fill = Accuracy)) +
-  geom_col() + 
-  labs(title = "Compare DT accuracy to KNN accuracy",
-  y = "Accuracy", x = "Algorithm")
-```
+???THERE is needed in the TEST and TRAIN in the LDA???
 
 ## Summary & Conclusions :
 
-firstly, we  tried KNN with k=2 and we got nice results of 92% accuracy using Z-score normalization.
-After checking big range of 'k' , the best prediction result was over 96% accuracy in predictions, while using hyper-parameter K=5(while using min-max normalization).
+firstly, we analyze the data, and understood it. The data is about classified the cancer disease into 3 levels "High"/"Medium"/"Low" per a patient (1000 patients in all the data-set), determined by 23 various aspects of the patient (from age and gender to snoring or weight-loss level). The data is very clear and most of it numeric.
 
-The next algorithm was DT we use it on our dataset after normalization process(min-max) without improvement and got 92% accuracy.
-After aggregating many decision trees by boosting improvement (10 trails of the algorithm) on DT algorithm we improved to 94% accuracy in algo's predictions.
-We used the default Decision Tree and its default hyper-parameters.
+Then, we used PCA to understand the data better, but the results were not so good, which imply us that maybe there is problem with linear algorithm, we will back to this point.
 
-After comparing two algorithms results (see the two comparing plots) we assume that KNN with K=5 as hyper-parameter is the the better algorithm to choose while classifing this data. However, the KNN is 'dummmy' algorithrm which dose'nt remember which means its has to go over all the training set for every classification, which is costly in runing time. The DT need some time for its train but the classification is lighter. So in case of need in fast classification, we reccomend chossing the DT with boosting of 10 trails which also gave very good preformance .
+After PCA, we tried to use other method ,KNN that does classification by clustering, we got great results of 100 100% accuracy using z-score normalization. We found that the best k is 1-9.  
 
+The next algorithm was SVM, we wanted to use other classification method, that is not working on clustering, but on "learn-able" vector. The results were great 100% accuracy.
 
-After we analyzed and run different algorithms on our data we assume that we got very good and similar classification results for each algorithm with and without improvement maybe as a result of that small size of our dataset cause small group of test sampels which maybe was easy to classify. Another option is that our dataset is easy to classify dou to  differentiated  features.
+Because we got great results on KNN and SVM which separate the data non-linearly and because that on the PCA that works linearly we didnt get great results, we wanted to check if maybe algorithm that separate the data linearly is not suited to our data. As so we tried to use Linear SVM to explore this hypothesis, but Linear SVM worked great - 100% accuracy, which not support the hypothesis, but we will try and check it agian later.
 
-As said before, our results are hardly connected with our test set - which is very small and have great impact on our results.
-To validate our results its will be clever to rerun our analyzes several time with different test sets and see if the results stay as is.
+The next algorithm was DT, we wanted to use it for trying to understand better the importance of each feature. We found that 5 feature is good enough for great results in the DT - 100% accuracy. The feature per patient are - Passive Smoker, Fatigue, Wheezing, Obesity and snoring features level.
+
+Then, we wanted to check again our hypothesis about not getting the best results on linear algorithm maybe because our data is not good enough for linear separation (??? it is not contradict to the fact that we checked Linear SVM and got great results???). As so, we deiced to use LDA. The results were good - 95% accuracy on the test data. So, in conclusion we understand that our data is excellent to separate and classify with non-linear algorithm (), but that the linear algorithm is good enough too(Linear SVM - 100%, LDA - 95 %). About our hypothesis we understand that the PCA is not good for our data.
+
+After we analyzed and run different algorithms on our data we assume that we got very good and similar classification results for each algorithm, exclude PCA, with and without improvement maybe as a result of that small size of our data-set cause small group of test sampels which maybe was easy to classify. Another option is that our dataset is easy to classify duo to  differentiated  features. The algorithm we will choose from all of them is SVM. The reasons are - 
+1. The results were excllent - 100% accuracy on linear and non-linear.
+2. It is a "learn-able" algorithm, so we assume it will be better for future data that someone will add to the data-set.
