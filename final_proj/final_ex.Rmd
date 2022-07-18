@@ -1,36 +1,36 @@
 ---
 title: "ML_B final project - Cancer patients Dataset"
-author: "Gil Diamant, Yishay Shlezinger & Itamar Twersky"
+author: "Gil Diamant, Yishay Schlesinger & Itamar Twersky"
 date: "17 05 2022"
 output: pdf_document
 ---
- 
+
 ```{r setup, global_options, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE, fig.width=8, fig.height=3)
 ```
 
+load libraries 
 
-load all relevant libraries 
 ```{r}
 set.seed(10)
 library(kernlab)      # SVM methodology
 library(e1071)        # SVM methodology
 library(ISLR)         # contains example data set "Khan"
 library(RColorBrewer) # customized coloring of plots
-library(ggplot2) # load the ggplot2 library
+library(ggplot2)      # load the ggplot2 library
 library(readxl)
 library(scales)
 library(gmodels)
 library(C50)
-library(mlbench) # for diabetes dataset
+library(mlbench)
 library(caret)
 library(corrplot)
-library(vip)        # for variable importance plots
+library(vip)          # for variable importance plots
 library(klaR)
 library(psych)
 library(MASS)
 library(devtools)
-# install_github('fawda123/ggord')
+#install_github('fawda123/ggord')
 library(ggord)
 library(dplyr)
 library(tidyverse)
@@ -38,7 +38,7 @@ library(ggplot2)
 library(purrr)
 ```
 
-create theme for all prediction results plots:
+create themes for all prediction results plots:
 
 ```{r}
 ##### Theme Moma #####
@@ -57,22 +57,29 @@ theme_moma <- function(base_size = 12, base_family = "Helvetica") {
 
 ## Have a look at the data
 
-read data to a local variable called seeds:
+Read the data to a local variable:
 ```{r}
 cancer_patient <- read_excel("cancer patient data sets.xlsx")
 ```
 
 
 Firstly, lets observe the properties of the data:
+
 ```{r}
 #show data as str
 str(cancer_patient)
 #show data dim
 dim(cancer_patient)
 ```
+The data is about classified the level of the cancer disease for a patient, determined by 23 various aspects of the patient (from age and gender to snoring or weight loss level).
 
+As we can see there is 3 cancer levels "High"/"Medium"/"Low" which are defined as a strings labels. For each patient there are various aspects
+which are defined as integers 1-10 (exclude age(numeric),and gender(1-male/2-female)). Each patient is defined by id string.
 
-look for NA/inf valuse
+From the table size we can see that we have 1000 patients.
+
+Now, we want to check data clarity, and to check if there is NA/inf value.(if so, to "clean" the data).
+Moreover, we want to check the classes balancing.
 
 ```{r}
 any(is.na(cancer_patient))
@@ -84,25 +91,25 @@ any(total)
 prop.table(table(cancer_patient$Level))
 ```
 
-Our data is about wheat seeds, its have observations on 199 wheat seeds with 8 variables.
-Every wheat seed is categorized with type of 1/2/3 as a type of wheat seed.
+From the results, we can see that -
+1. We don't have any NA/inf values, so the data clarity is fine.
+2. The classes are balanced, so the data is almost evenly distributed, and we should preserve it when splitting the data.
 
-We are interested in creating a model with the ability to predict the type of weed, by its properties.
 
-As shown above, there is 7 columns of seeds' properties, all of them numeric.
+Now, We are interested in creating a model with the ability to predict the level of the cancer for a patient, by its properties.
 
-The type is numeric, and we wish to make it 'factor' for being categorical.
+The level is string, and we wish to make it 'factor' for being categorical.
 
 ```{r}
-# convert Type from numeric variable to factor
+# convert Type from numeric variable to factor (factor is an ordered object)
 cancer_patient$Level<-as.factor(cancer_patient$Level)
 ```
 
 
-Because our data contains many columns (7, the 8th is the classification), we need a way to visualize most of the complexity represented in all dimensions in just two or three dimensions. Fortunately, that is exactly what dimension reduction does. Here, we apply a simple dimension reduction technique called principal component analysis (PCA) to all 7 numerical variables(the features) in the data set. 
-* Important to mention that before doing any dimensional reduction, it is important to preprocess your data- in this case our data has only numeric values. 
+Because our data contains many columns (23, the 1st is the patient_id and the 25th is the classification), we need a way to visualize most of the complexity represented in all dimensions in just two or three dimensions. Fortunately, that is exactly what dimension reduction does. Here, we apply a simple dimension reduction technique called principal component analysis (PCA) to all 23 numerical variables(the features) in the data set. 
+* Important to mention that before doing any dimensional reduction, it is important to preprocess your data- in this case our data has only numeric values, as we shown before. 
 
-The pca can be very useful in all of our analyzes for showing our data in 2D graph representing our seeds properties
+The pca can be very useful in all of our analyzes for showing our data in 2D graph.
 
 ```{r}
 # Preform PCA on our data
@@ -126,21 +133,13 @@ pca gave as moderate results, lets check our variance - explaning in the 4 first
 # variance of the 4 firsts pc components
 print(round(prcomp_cancer_patient$sdev[1:4] / sum(prcomp_cancer_patient$sdev) * 100, 2))
 ```
-as showed above - the pc components explain smal part of the variance in the data, and this is probabaly the couse to the moderate success in the separation of the sampels.
-maybe that is because our data are not lineary seperable, and pca is a linear algorithem.
-
-last thing to look at the distribution of the labels:
-```{r}
-# show 'type' column as table
-table(pca_cancer_patient$Level)
-```
-We can see that the data is almost evenly distributed, and we should preserve it when splitting the data.
+as showed above - the pc components explain small part of the variance in the data, and this is probabaly the cause to the moderate success in the separation of the sampels.
+????maybe that is because our data are not lineary seperable, and pca is a linear algorithem.????
 
 
 ## prepreing the data
 
-
-Lets shuffle the data so it's order wont affect our models 
+Lets shuffle the data so it's order Will not affect our models 
 
 ```{r}
 # shuffle the data by rows
@@ -149,9 +148,9 @@ set.seed(1234)
 pca_cancer_patient= pca_cancer_patient[sample(1:nrow(pca_cancer_patient)), ]
 ```
 
+We saw above that the range of value is different between properties. ??? (all of them are 1-10)
+Because we don't want that it will affect the importance of each property, we standardize the data with z-score.(to standard distribution)
 
-we saw above that the range of value is different between properties.
-Because we don't want that it will affect the importance of each property, we standardize the data with z-score.
 ```{r}
 # z-score standardization (on the feuters columns only)
 cancer_patient_z <- cbind(as.data.frame(scale(pca_cancer_patient[2:24])),pca_cancer_patient[25:27])
@@ -159,7 +158,9 @@ cancer_patient_z <- cbind(as.data.frame(scale(pca_cancer_patient[2:24])),pca_can
 ```
 
 
-Note: because we are trying to classify 3 differnt type of seeds, the only parameter matters is the accuracy, there is no recall..
+Note: because we are trying to classify 3 different levels of cancer, the only parameter matters is the accuracy, there is no recall..
+
+We want to check if we can create better separation in ???non-linear??? algorithm, we chose KNN - clustering algorithm.
 
 ## KNN:
 The k-nearest neighbors (KNN) algorithm is a simple, easy-to-implement supervised machine learning algorithm that can be used to solve classification problems.
@@ -167,7 +168,7 @@ The KNN algorithm assumes that similar things exist in close proximity. In other
 KNN is looking for the 'k' nearest neighbors to the Unlabeled sample and classify it Like most neighbors, while 'k' is  a hyper-parameter we should tune.
 
 lets try it on out data:
-The next step is to create a training set and a test set, and to store the labels in a different vector to be used later. We divide our data into 80% train, 20% test,.
+The next step is to create a training set and a test set, and to store the labels in a different vector to be used later. We divide our data into 80% train, 20% test.
 
 ```{r}
 # create train set
@@ -181,13 +182,14 @@ cancer_test_labels <- cancer_patient_z$Level[801:1000]
 
 ```
 
-Lets check the almost even distribution between labeles was preserved:
+Lets check that the classes distribution is preserved between train and test:
 ```{r}
 prop.table(table(cancer_train_labels))
 prop.table(table(cancer_test_labels))
 ```
+As we can see, the distribution is preserved.
 
-'class' package for knn algorithm.
+load 'class' package for knn algorithm.
 ```{r}
 library(class) 
 ```
@@ -203,7 +205,7 @@ Since the knn function returns a factor vector of the predicted values, we'll co
 
 ```{r}
 library(gmodels)
-# show preformence in table
+# show preformence in table (numeric)
 CrossTable(x = cancer_test_labels, y = cancer_test_pred_z, prop.chisq=FALSE)
 
 #knn_model contains only preicted value
@@ -220,15 +222,9 @@ ggplot(test_v_1, aes(y=PC1, x = PC2, col=cancer_test_labels, label = Correct)) +
   geom_text(size = 3, show.legend = FALSE)
 # True on each point means that it is correct prediction, FALSE means wrong prediction
 ```
-In the above table we see that almost all of the seeds were predicted correctly.
-There were three mistakes, two of type 2 and one of type 3 were mistakenly predicted as type 1.
-one of type 1 were mistakenly predicted as type 2.
-Two of the mistakes make some sense because one is on the borders between group, and one is outlayer.
-The all other predictions were correct.
+In the above table we see that all of the patients were predicted correctly. ???REMOVE PCA???
 
-
-# version of z-normaliztion
-
+Lets check the best K hyper-parameter for KNN -
 ```{r}
 #setting a seed for reproducible results
 set.seed(1234)
@@ -247,15 +243,16 @@ plot(k_options, type="b", xlab="K- Value",ylab="Accuracy level", main = "knn mod
 
 As we saw, we can use KNN to as multi-class classifier algorithm.
 
-If we use 'k' in values of 3 - 25 then the KNN got very good results with only 1:39 mistakes.
+If we use 'k' in values of 1 - 9 then the KNN got excellent results with zero mistakes.
 
-
-after seeing the nice results of the knn, we wanted to test a model that gives us an informative model in which we can learn from the output model.
-We choose Decision-Tree model for our next model
-
-
+Now, we want to check another classification algorithm. but this time we want to check other approach. The KNN working by clustering, and now we want to work by a "learnable" vector separation model, so we will use SVM.
 
 ##  SVM:
+A Support Vector Machine (SVM) is a supervised machine learning algorithm that can be employed for both classification and regression purposes.
+SVMs are based on the idea of finding a hyperplane that best divides a dataset into two classes.
+SVMs are more commonly used in classification problems and as such, we will use it here on our level of cancer classification.
+
+we will start with c=0.1 and gamma = 10 as arbitrary hyper-parameters -
 
 ```{r}
 # fit model
@@ -283,10 +280,10 @@ ggplot(test_v_1, aes(y=PC1, x = PC2, col=cancer_test_labels, label = Correct, sh
   theme(legend.position = "bottom") +
   ggtitle("SVM Prediction Results") + 
   geom_text(size = 3, show.legend = FALSE)
-
 ```
+We got 3 mistakes on the test, so now we want to find better hyper-parameters.
 
-# tune cost hyper prameters
+# tune cost and gama hyper prameters
 ```{r}
 # tune model to find optimal cost and gamma values
 tune.out <- tune(svm, Level~ ., data = cancer_train_z[1:24], kernel = "radial",ranges = list(gamma = c(0.1, 1, 5, 10, 100), cost = c(0.1, 1, 5, 10, 100)),tunecontrol = tune.control(sampling = "fix"))
@@ -294,6 +291,8 @@ tune.out <- tune(svm, Level~ ., data = cancer_train_z[1:24], kernel = "radial",r
 print(tune.out$best.parameters)
 ```
 
+???I cant see the above output....???
+From the results we can see the c=0.1 and gamma=0.1 are better hyper-parameter, so lets run with them -
 ```{r}
 # fit model
 classifier <- svm(Level~ ., data = cancer_train_z[1:24], kernel = "radial", cost = 0.1, gamma = 0.1)
@@ -301,11 +300,14 @@ print(classifier)
 svm_pred = predict(classifier, newdata = cancer_test_z[1:23])
 
 library(gmodels)
-# show preformence in table
+# show preference in table
 CrossTable(x = cancer_test_labels, y = svm_pred, prop.chisq=FALSE)
 ```
+Now we have 0 mistakes, so we got excellent results with SVM.
 
-We saw very great results in knn and radial svm, but moderate separation in the pca(althogh pca its not calsifier, we expect to see good seperation of the samples by class which is not so good). We suggest that it may cause by the data which is cannot be separted lineary, o we try linear svm.
+
+??? Maybe it is not needed???
+We saw very great results in KNN and radial SVM, but moderate separation in the PCA(although PCA is not classifier, we expect to see good separation of the samples by class which is not so good). We suggest that it may cause by the data which is cannot be separated linearly, so we want to test linear SVM to try to approve our hypothesis.
 
 # linear svm
 
@@ -319,9 +321,10 @@ library(gmodels)
 # show preformence in table
 CrossTable(x = cancer_test_labels, y = svm_pred, prop.chisq=FALSE)
 ```
+From the results we can see that we have 0 mistakes, which not support our hypothesis.
 
-
-
+Now, After KNN and SVM, we wanted to test a model that gives us information about patient's properties importance for the level of cancer, which we can learn from the output of the model.
+We choose Decision-Tree model for our next model -
 
 ##  Decision-Tree classifer:
 
@@ -341,18 +344,16 @@ cancer_model <- C5.0(cancer_train_z[1:23], cancer_train_labels)
 #take a look at our model
 cancer_model %>% vip()
 ```
-We can see that our tree relay hard on only 5 of the features and maybe its decrease our performance.
-Another way to look about it that we can see that we got 92% accuracy relaying on this feautres so we can said that the type of seed can be nicly predited by its kernel-grove, area and asymmetry-coeff
+We can see that our tree relay hard on only 5 of the features and maybe its decrease our performance - lets check the accuracy.
 
-Next we'll look at the summary of the model. 
+Next we'll look at the summary of the model.
 
 ```{r}
 summary(cancer_model)
 ```
+We got 100% accuracy ???(on train data)???.
 
-The numbers in parentheses indicate the number of examples meeting the criteria for
-that decision, and the number incorrectly classified by the decision. 
-For instance, on the first line, 62/6 indicates that of the 62 examples reaching the decision, 6 was incorrectly classified as not likely to type. In other words, 6 seed actually typed, in spite of the model's prediction.
+So Another way to look about our tree relay hard on only 5 of the features, is that we can see that we got 100% accuracy relaying on those features so we can said that the patient's level of the cancer can be predicted by its Passive Smoker, Fatigue, Wheezing, Obesity and snoring features level, and it is not decrease our performance as we thought before.
 
 As we now know, it is very important to evaluate our model performance:
 
@@ -382,15 +383,15 @@ c1 <-ggplot(test_merged1, aes(y=PC1, x = PC2, col=Level, label = Correct)) +
 show(c1)
 ```
 
-The performance here is a bit worse than its performance on the
-training data as expected,and also a bit worse than the best predictions in knn classifier.
+From the results we can see the we have 100% accuracy.
 
+Now we want to try and explore again if we can separate our data in linear way, but other than PCA. So we chose to use LDA, that focusing more on separation rather variation (like PCA).
 
 
 ## LDA
+Linear discriminant analysis (LDA), is used as a tool for classification, dimension reduction, and data visualization. It is try to maximize the distance between the means and to minimize the variation.
 
-#some explanation on lda and what we want to achive
-
+Lets run LDA -
 ```{r}
 # apply LDA
 linear <- lda(Level~., cancer_train_z[1:24])
@@ -400,6 +401,7 @@ lda_porpotions = signif(prop.table(linear$svd^2),3)
 print("LDA1   LDA2")
 print( paste0(as.character(lda_porpotions[1]),"  ", as.character(lda_porpotions[2])))
 ```
+
 
 ```{r}
 # Historgram using LDA1
