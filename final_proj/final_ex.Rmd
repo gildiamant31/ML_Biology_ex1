@@ -6,7 +6,7 @@ output: pdf_document
 ---
 
 ```{r setup, global_options, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE, fig.width=8, fig.height=3)
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE, fig.width=7, fig.height=2)
 ```
 
 load libraries 
@@ -415,21 +415,21 @@ As we now know, it is very important to evaluate our model performance on the te
 set.seed(1234)
 # apply model on test data
 cancer_pred <- predict(cancer_model, cancer_test_z[1:23])
-
-CrossTable(cancer_test_labels, cancer_pred, prop.chisq = FALSE,
-           prop.c = FALSE, prop.r = FALSE, 
-           dnn = c('actual Type', 'predicted Type'))
+# check  true,false classifying rate
+correction <- (cancer_pred == cancer_test_z$Level)
+"TRUE"
+table(correction)[["TRUE"]]
+"FALSE"
+200 - table(correction)[["TRUE"]]
 
 ```
 We got 100% accuracy on test data.
 
 So Another way to look about our tree relay hard on only 5 of the features, is that we can see that we got 100% accuracy relaying on those features so we can said that the patient's level of the cancer can be predicted by its Passive Smoker, Fatigue, Wheezing, Obesity and snoring features level, and it is not decrease our performance as we thought before.
 
-
 We did dimensionality reduction using PCA and classification using 3 algorithms. 
 Finely, we want to try another dimensionality reduction to see if its can sepreate the data better, in adittion we would like to check if
 LDA can classify the data correctly according to its separation.
-
 
 ## LDA
 Linear discriminant analysis (LDA), is used as a tool for classification, dimension reduction, and data visualization. It is try to maximize the distance between the means and to minimize the variation.
