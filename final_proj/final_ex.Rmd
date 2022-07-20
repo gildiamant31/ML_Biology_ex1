@@ -256,7 +256,8 @@ table(correction)[["TRUE"]]
 test_v_1 <- cbind(cancer_test_z,svm_pred)
 #This will return TRUE or FALSE.
 test_v_1$Correct <- test_v_1$Level == test_v_1$svm_pred
-# again here we also plot the types according two PCA with TRUE or FALSE labeling, and color of the true lable
+# again here we also plot the types according two PCA with TRUE or FALSE labeling,
+# and color of the true lable
 ggplot(test_v_1, aes(y=PC1, x = PC2, col=cancer_test_labels,
                      label = Correct, shape = Level)) +
   geom_point(size=5, alpha = 0.2) + 
