@@ -28,6 +28,7 @@ library(corrplot)
 library(vip)          # for variable importance plots
 library(klaR)
 library(psych)
+library(cowplot)
 library(MASS)
 library(devtools)
 #install_github('fawda123/ggord')
@@ -123,7 +124,7 @@ Firstly, we asked if cancer condition is different between genders in our data
  pF = ggplot(cancer_patient_gender[cancer_patient_gender$Gender=="Female",], aes(x = factor(1) , fill = Level)) +
  geom_bar(width = 1) + facet_grid(cols = vars(Gender)) + coord_polar(theta = "y")+ xlab("") + ylab("") 
  # show plots together
- plot_grid(pM, pF, labels = "AUTO")
+plot_grid(pM, pF, labels = "AUTO")
 
 
 ```
