@@ -6,7 +6,7 @@ output: pdf_document
 ---
 
 ```{r setup, global_options, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE, fig.width=7, fig.height=2)
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE, fig.width=8, fig.height=3)
 ```
 
 load libraries 
@@ -41,7 +41,7 @@ library(purrr)
 
 create themes for all prediction results plots:
 
-```{r}
+```{r echo=FALSE}
 ##### Theme Moma #####
 theme_moma <- function(base_size = 12, base_family = "Helvetica") {
   theme(
@@ -57,13 +57,10 @@ theme_moma <- function(base_size = 12, base_family = "Helvetica") {
 ```
 
 ## Have a look at the data
-
 Read the data to a local variable:
 ```{r}
 cancer_patient <- read_excel("cancer patient data sets.xlsx")
 ```
-
-
 Firstly, lets observe the properties of the data:
 
 ```{r}
@@ -74,10 +71,8 @@ print("data dimensions: ")
 dim(cancer_patient)
 ```
 The data is about classified the level of the cancer disease for a patient, determined by 23 various aspects of the patient (from age and gender to snoring or weight loss level).
-
 As we can see there is 3 cancer levels "High"/"Medium"/"Low" which are defined as a strings labels. For each patient there are various aspects
 which are defined as integers 1-10 (exclude age(numeric),and gender(1-male/2-female)). Each patient is defined by id string.
-
 From the table size we can see that we have 1000 patients.
 
 Now, we want to check data clarity, and to check if there is NA/inf value.(if so, to "clean" the data).
@@ -92,28 +87,17 @@ for (variable in cancer_patient) {
 any(total)
 prop.table(table(cancer_patient$Level))
 ```
-
 From the results, we can see that -
 1. We don't have any NA/inf values, so the data clarity is fine.
 2. The classes are balanced, so the data is almost evenly distributed, and we should preserve it when splitting the data.
 
-
-The level is string, and we wish to make it 'factor' for being categorical.
-
-```{r}
-# convert Type from numeric variable to factor (factor is an ordered object)
-cancer_patient$Level<-as.factor(cancer_patient$Level)
-```
-
 # EDA
-
 After looking on our data set, we had some exploratory questions and we want to see whats the data can tell about them.
-
 Firstly, we asked if cancer condition is different between genders in our data
 
 ```{r}
-
- 
+ # convert Type from numeric variable to factor (factor is an ordered object)
+ cancer_patient$Level<-as.factor(cancer_patient$Level)
  #change gender from number to word
  cancer_patient_gender = cancer_patient
  cancer_patient_gender$Gender[cancer_patient_gender$Gender==1] = "Male"
@@ -128,10 +112,6 @@ Firstly, we asked if cancer condition is different between genders in our data
   draw_label("cancer level vs gender",fontface = 'bold',x = 0,hjust = 0)
  plot_row <- plot_grid(pM, pF)
  plot_grid(title, plot_row,ncol = 1,rel_heights = c(0.05, 1))
- 
- 
-
-
 ```
 As shown it the graph above, the males have much bigger fraction of severe cancer.
 The difference can cause from many reasons, we wish to find a feature that connected both to men and cancer, and can partly explain the difference between genders.
@@ -447,25 +427,13 @@ print( paste0(as.character(lda_porpotions[1]),"  ", as.character(lda_porpotions[
 
 The LDA1 is high (0.888) which show that it has the best variation between categories that LDA create, and LDA2 is seconed one. Both of them are the vast majority to explain the variation between the categories for us (in contrast to the PCA1 and PCA2 we saw before). 
 
-Lets view the diffrence between the seperation of LDA1 and LDA2 - 
-```{r}
-# Histogram using LDA1
-p <- predict(linear, cancer_train_z[1:24])
-par(mar = rep(2, 4))
-ldahist(data = p$x[,1], g = cancer_train_z$Level)
-ldahist(data = p$x[,2], g = cancer_train_z$Level)
-```
-We can see that the separation is not perfect -
-1. In LD1 there is overlap between Medium and Low.
-2. In LD2 there is overlap between all of the classes (Low,Medium,High).
-NOTE: the separation in LDA1 much better corresponding to the results above.
 
 ### bi-plot
 Lets view the LDA1/2 plot -
 ```{r}
 ggord::ggord(linear, cancer_train_z$Level, ylim = c(-5, 5),txt = NULL)
 ```
-From the plot we can see very good separation, although its not perfect, which corresponding to the results above.
+From the plot we can see very good separation(in which LD1 have the most significant effect - the seperation is mostly horizontaly), although its not perfect, which corresponding to the results above.
 
 ### Confusion matrix and accuracy – training data
 Lets get the classification on the data, start with the 'train' - 
