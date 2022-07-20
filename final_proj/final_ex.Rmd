@@ -37,10 +37,9 @@ library(dplyr)
 library(tidyverse)
 library(ggplot2)
 library(purrr)
+library(class)
 ```
-
 create themes for all prediction results plots:
-
 ```{r echo=FALSE}
 ##### Theme Moma #####
 theme_moma <- function(base_size = 12, base_family = "Helvetica") {
@@ -56,14 +55,13 @@ theme_moma <- function(base_size = 12, base_family = "Helvetica") {
 }
 ```
 
-## Have a look at the data
-Read the data to a local variable:
-```{r}
-cancer_patient <- read_excel("cancer patient data sets.xlsx")
-```
-Firstly, lets observe the properties of the data:
+### Have a look at the data
+Read the data to a local variable
+Firstly,Read the data and lets observe the properties of the data:
 
 ```{r}
+# read the data
+cancer_patient <- read_excel("cancer patient data sets.xlsx")
 #show data as str
 str(cancer_patient)
 #show data dim
@@ -91,7 +89,7 @@ From the results, we can see that -
 1. We don't have any NA/inf values, so the data clarity is fine.
 2. The classes are balanced, so the data is almost evenly distributed, and we should preserve it when splitting the data.
 
-# EDA
+## EDA
 After looking on our data set, we had some exploratory questions and we want to see whats the data can tell about them.
 Firstly, we asked if cancer condition is different between genders in our data
 
@@ -111,7 +109,7 @@ Firstly, we asked if cancer condition is different between genders in our data
  title <- ggdraw() + 
   draw_label("cancer level vs gender",fontface = 'bold',x = 0,hjust = 0)
  plot_row <- plot_grid(pM, pF)
- plot_grid(title, plot_row,ncol = 1,rel_heights = c(0.05, 1))
+ plot_grid(title, plot_row,ncol = 1,rel_heights = c(0.5, 1))
 ```
 As shown it the graph above, the males have much bigger fraction of severe cancer.
 The difference can cause from many reasons, we wish to find a feature that connected both to men and cancer, and can partly explain the difference between genders.
@@ -135,24 +133,20 @@ ggscatter(cancer_patient, x = "Snoring", y = "Fatigue",
           xlab = "Snoring", ylab = "Fatigue") + ggtitle("corralation of Snoring & Fatigue")
 ```
 Surprisingly we saw no significant correlation.
+## dimension reduction - PCA
+Our data contains many columns which means its have high dimension. 
+We wish to transfer our data to 2D while Preserving our high dimension variation.
+Having our data in 2D will allow us to see if the 3 cancer levels in our data make 3 different distinct groups.
+In addition, we will be able to show the the next algorithms results on our data using the 2D presention of our data.
+* Important to mention that it is important to preprocess your data- in this case our data has only numeric values, as we shown before. 
 
-
-
-Now, We are interested in creating a model with the ability to predict the level of the cancer for a patient, by its properties.
-
-
-Because our data contains many columns (23, the 1st is the patient_id and the 25th is the classification), we need a way to visualize most of the complexity represented in all dimensions in just two or three dimensions. Fortunately, that is exactly what dimension reduction does. Here, we apply a simple dimension reduction technique called principal component analysis (PCA) to all 23 numerical variables(the features) in the data set. 
-* Important to mention that before doing any dimensional reduction, it is important to preprocess your data- in this case our data has only numeric values, as we shown before. 
-
-The pca can be very useful in all of our analyzes for showing our data in 2D graph.
-
+We choose PCA algorithm which is reliable dimensional reducerfor showing our data in 2D graph.
 ```{r}
 # Preform PCA on our data
 prcomp_cancer_patient <- prcomp(cancer_patient[, 2:24])
 # bind between 2 first pcas and our dataframe
 pca_cancer_patient <-  cbind(cancer_patient,PC1 = prcomp_cancer_patient$x[, 1],PC2 = prcomp_cancer_patient$x[, 2])
 ```
-
 lets plot our pca results:
 ```{r}
 # plot the types according two specific columns after PCA
@@ -170,33 +164,22 @@ print(round(prcomp_cancer_patient$sdev[1:4] / sum(prcomp_cancer_patient$sdev) * 
 ```
 as showed above - the pc components explain small part of the variance in the data, and this is probabaly the cause to the moderate success in the separation of the samples.
 Maybe our data are not lineary separable, and pca as a linear algorithem having a hard time seprate it, we will check this later.
-
-
-## prepreing the data
-
+## classification
+Now, We are interested in creating a model with the ability to predict the level of the cancer for a patient, by its properties.
+Having good model can allow us to predict new patients' condition according to their symptoms.  
+#### prepreing the data
 Lets shuffle the data so it's order Will not affect our models 
-
 ```{r}
 # shuffle the data by rows
-#setting a seed for reproducible results
 set.seed(1234)
 pca_cancer_patient= pca_cancer_patient[sample(1:nrow(pca_cancer_patient)), ]
 ```
-
 We saw above that the range of value is different between properties. ??? (all of them are 1-10)
 Because we don't want that it will affect the importance of each property, we standardize the data with z-score.(to standard distribution)
-
 ```{r}
 # z-score standardization (on the feuters columns only)
 cancer_patient_z <- cbind(as.data.frame(scale(pca_cancer_patient[2:24])),pca_cancer_patient[25:27])
-
 ```
-
-
-Note: because we are trying to classify 3 different levels of cancer, the only parameter matters is the accuracy, there is no recall..
-
-We want to check if we can create better separation in ???non-linear??? algorithm, we chose KNN - clustering algorithm.
-
 ## KNN:
 The k-nearest neighbors (KNN) algorithm is a simple, easy-to-implement supervised machine learning algorithm that can be used to solve classification problems.
 The KNN algorithm assumes that similar things exist in close proximity. In other words, similar things are near to each other.
@@ -214,9 +197,7 @@ cancer_test_z <- cancer_patient_z[801:1000, ]
 cancer_train_labels <- cancer_patient_z$Level[1:800]
 # labels of test set
 cancer_test_labels <- cancer_patient_z$Level[801:1000]
-
 ```
-
 Lets check that the classes distribution is preserved between train and test:
 ```{r}
 prop.table(table(cancer_train_labels))
@@ -224,13 +205,7 @@ prop.table(table(cancer_test_labels))
 ```
 As we can see, the distribution is preserved.
 
-load 'class' package for knn algorithm.
-```{r}
-library(class) 
-```
-
 And finally, we are ready to run our algorithm. We'll start with K=3 as arbitrary hyper-parameter, and check another options if its wont be good.
-
 ```{r}
 # get predictions for the test set from knn, send as input the features columns and the train labels 
 cancer_test_pred_z <- knn(train = cancer_train_z[1:23], test = cancer_test_z[1:23], cl = cancer_train_labels, k=3)
@@ -241,12 +216,10 @@ table(correction)[["TRUE"]]
 "FALSE"
 200 - table(correction)[["TRUE"]]
 ```
-In the above table we see that all of the patients were predicted correctly. 
-
+All of the patients were predicted correctly. 
 
 Lets check the results for range of K hyper-parameter for KNN -
 ```{r}
-#setting a seed for reproducible results
 set.seed(1234)
 # loop over 40 different k values and saved the accuracy of algorithm prediction in array
 i=1
@@ -255,15 +228,10 @@ for (i in 1:40){
 knn_pred <- knn(train=cancer_train_z[1:23], test=cancer_test_z[1:23], cl=cancer_train_labels, k=i)
 k_options[i] <- 100 * sum(cancer_test_labels == knn_pred)/NROW(cancer_test_labels)
 }
-
-
 # show the differences of the accuracy for each k value in a plot.
 plot(k_options, type="b", xlab="K- Value",ylab="Accuracy level", main = "knn model accuracy for different k values")
 ```
-
-As we saw, we can use KNN to as multi-class classifier algorithm.
-
-If we use 'k' in values of 1 - 9 then the KNN got excellent results with zero mistakes.
+As we saw, we can use KNN to as multi-class classifier algorithm. If we use 'k' in values of 1 - 9 then the KNN got excellent results with zero mistakes.
 
 Now, we want to check another classification algorithm. but this time we want to check other approach. The KNN working by clustering, and now we want to work by a "learnable" vector separation model, so we will use SVM.
 
@@ -276,10 +244,8 @@ we will start with c=0.1 and gamma = 10 as arbitrary hyper-parameters -
 
 ```{r}
 # fit model
-
 classifier <- svm(Level~ ., data = cancer_train_z[1:24], kernel = "radial", cost = 0.1, gamma = 10)
 svm_pred = predict(classifier, newdata = cancer_test_z[1:23])
-
 # check  true,false classifying rate
 correction <- (svm_pred == cancer_test_z$Level)
 "TRUE"
@@ -288,18 +254,13 @@ table(correction)[["TRUE"]]
 200 - table(correction)[["TRUE"]]
 ```
 There is some mistkaes, lets check it more deeply:
-
 ```{r}
 # show preformence in table
 CrossTable(x = cancer_test_labels, y = svm_pred, prop.chisq=FALSE)
-
 #add to test the preicted values
 test_v_1 <- cbind(cancer_test_z,svm_pred)
 #This will return TRUE or FALSE.
 test_v_1$Correct <- test_v_1$Level == test_v_1$svm_pred
-
-
-
 # again here we also plot the types according two PCA with TRUE or FALSE labeling, and color of the true lable
 ggplot(test_v_1, aes(y=PC1, x = PC2, col=cancer_test_labels, label = Correct, shape = Level)) +
   geom_point(size=5, alpha = 0.2) + 
@@ -310,9 +271,7 @@ ggplot(test_v_1, aes(y=PC1, x = PC2, col=cancer_test_labels, label = Correct, sh
   geom_text(size = 3, show.legend = FALSE)
 ```
 We got 3 mistakes on the test, so now we want to find better hyper-parameters.
-
-# tune cost and gama hyper prameters
-
+#### tune cost and gama hyper prameters
 Trying range of gamma and cost:
 ```{r}
 # tune model to find optimal cost and gamma values
@@ -320,7 +279,6 @@ tune.out <- tune(svm, Level~ ., data = cancer_train_z[1:24], kernel = "radial",r
 # show best model parameters
 print(tune.out$best.parameters)
 ```
-
 From the results we can see the c=0.1 and gamma=0.1 are better hyper-parameter, so lets run with them -
 (hoping we will get 100% accurate like the knn model)
 ```{r}
@@ -337,16 +295,12 @@ table(correction)[["TRUE"]]
 ```
 Now we have 0 mistakes, so we got excellent results with SVM.
 
-
 We saw very great results in KNN and radial SVM, but moderate separation in the PCA(although PCA is not classifier, we expect to see good separation of the samples by class which is not so good). We suggested that it may cause by the data which is cannot be separated linearly, so we want to test linear SVM to try to check our hypothesis.
-
-# linear svm
-
+#### linear svm
 ```{r}
 # fit model
 classifier <- svm(Level~ ., data = cancer_train_z[1:24], kernel = "linear", cost = 0.1, gamma = 0.1)
 svm_pred = predict(classifier, newdata = cancer_test_z[1:23])
-
 # check  true,false classifying rate
 correction <- (svm_pred == cancer_test_z$Level)
 "TRUE"
@@ -356,22 +310,16 @@ table(correction)[["TRUE"]]
 ```
 From the results we can see that we have 0 mistakes, which not support our hypothesis.
 
-
 Now, After KNN and SVM, we wanted to test a model that gives us information about patient's properties importance for the level of cancer, which we can learn from the output of the model.
 We choose Decision-Tree model for our next model -
-
 ##  Decision-Tree classifer:
-
-
 Decision Tree algorithm belongs to the family of supervised learning algorithms. The decision tree algorithm can be used for solving regression and classification problems too.
 The goal of using a Decision Tree is to create a training model that can use to predict the class or value of the target variable by learning simple decision rules inferred from prior data(training data).
 In Decision Trees, for predicting a class label for a record we start from the root of the tree. We compare the values of the root attribute with the record’s attribute. On the basis of comparison, we follow the branch corresponding to that value and jump to the next node.
 
 we already have training and test sets, normalized and shuffled,
-lets run our DT
-
+lets run our DT:
 ```{r}
-#setting a seed for reproducible results
 set.seed(1234)
 # apply model in training data (8th column is the label to be predicted)
 cancer_model <- C5.0(cancer_train_z[1:23], cancer_train_labels)
@@ -381,17 +329,13 @@ cancer_model %>% vip()
 We can see that our tree relay hard on only 5 of the features and maybe its decrease our performance - lets check the accuracy.
 
 Next we'll look at the summary of the model.
-
 ```{r}
 summary(cancer_model)
 ```
 We got 100% accuracy on train data.
 
-
 As we now know, it is very important to evaluate our model performance on the test set:
-
 ```{r}
-#setting a seed for reproducible results
 set.seed(1234)
 # apply model on test data
 cancer_pred <- predict(cancer_model, cancer_test_z[1:23])
@@ -401,7 +345,6 @@ correction <- (cancer_pred == cancer_test_z$Level)
 table(correction)[["TRUE"]]
 "FALSE"
 200 - table(correction)[["TRUE"]]
-
 ```
 We got 100% accuracy on test data.
 
@@ -424,9 +367,7 @@ lda_porpotions = signif(prop.table(linear$svd^2),3)
 print("LDA1   LDA2")
 print( paste0(as.character(lda_porpotions[1]),"  ", as.character(lda_porpotions[2])))
 ```
-
 The LDA1 is high (0.888) which show that it has the best variation between categories that LDA create, and LDA2 is seconed one. Both of them are the vast majority to explain the variation between the categories for us (in contrast to the PCA1 and PCA2 we saw before). 
-
 
 ### bi-plot
 Lets view the LDA1/2 plot -
@@ -442,11 +383,9 @@ Lets get the classification on the data, start with the 'train' -
 p1 <- predict(linear, cancer_train_z[1:23])$class
 tab <- table(Predicted = p1, Actual = cancer_train_z$Level)
 tab
-
 sum(diag(tab))/sum(tab)
 ```
 From the results we can see that we have 32 mistakes, 31 of them are Medium that classified as Low, which corresponding to the plot above (see the green(Low) and the blue(Medium) circles). As so, the accuracy 96%, good but not perfect.
-
 
 ### Confusion matrix and accuracy – testing data
 Lets get the classification on the 'test' data - 
@@ -463,7 +402,6 @@ We can see that on the test we have 10 mistakes, again Medium that classified as
 
 Those results can imply us that the linear algorithm is not the best for our data.
 
-
 ## Summary & Conclusions :
 
 firstly, we analyze the data, and understood it. The data is about classified the cancer disease into 3 levels "High"/"Medium"/"Low" per a patient (1000 patients in all the data-set), determined by 23 various aspects of the patient (from age and gender to snoring or weight-loss level). The data is very clear and most of it numeric.
@@ -474,7 +412,7 @@ After PCA, we tried to use other method ,KNN that does classification by cluster
 
 The next algorithm was SVM, we wanted to use other classification method, that is not working on clustering, but on "learn-able" vector. The results were great 100% accuracy.
 
-Because we got great results on KNN and SVM which separate the data non-linearly and because that on the PCA that works linearly we didnt get great results, we wanted to check if maybe algorithm that separate the data linearly is not suited to our data. As so we tried to use Linear SVM to explore this hypothesis, but Linear SVM worked great - 100% accuracy, which not support the hypothesis, but we will try and check it agian later.
+Because we got great results on KNN and SVM which separate the data non-linearly and because that on the PCA that works linearly we didnt get great results, we wanted to check if maybe algorithm that separate the data linearly is not suited to our data. As so we tried to use Linear SVM to explore this hypothesis, but Linear SVM worked great - 100% accuracy, which not support the hypothesisץ
 
 The next algorithm was DT, we wanted to use it for trying to understand better the importance of each feature. We found that 5 feature is good enough for great results in the DT - 100% accuracy. The feature per patient are - Passive Smoker, Fatigue, Wheezing, Obesity and snoring features level.
 
@@ -482,4 +420,4 @@ Then, we wanted to check again our hypothesis about not getting the best results
 
 After we analyzed and run different algorithms on our data we assume that we got very good and similar classification results for each algorithm, exclude PCA, with and without improvement maybe as a result of that small size of our data-set cause small group of test sampels which maybe was easy to classify. Another option is that our dataset is easy to classify duo to  differentiated  features. The algorithm we will choose from all of them is SVM. The reasons are - 
 1. The results were excllent - 100% accuracy on linear and non-linear.
-2. It is a "learn-able" algorithm, so we assume it will be better for future data that someone will add to the data-set.
+2. It is a "learn-able" algorithm, so the heavy learning part of the algorithm should run only once. If we want to take our model l further, we should train it on bigger dataset, in this case the learning part can take a while. After the learning will be done, we can use oyr algorthem to predict new case in much less costly runing time. another aspect of this is that we can pass our model without passing the training set, and use the model to predict new cases.
