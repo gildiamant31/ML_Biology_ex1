@@ -122,9 +122,14 @@ Firstly, we asked if cancer condition is different between genders in our data
  pM = ggplot(cancer_patient_gender[cancer_patient_gender$Gender=="Male",], aes(x = factor(1) , fill = Level)) +
  geom_bar(width = 1) + facet_grid(cols = vars(Gender)) + coord_polar(theta = "y")+ xlab("") + ylab("") 
  pF = ggplot(cancer_patient_gender[cancer_patient_gender$Gender=="Female",], aes(x = factor(1) , fill = Level)) +
- geom_bar(width = 1) + facet_grid(cols = vars(Gender)) + coord_polar(theta = "y")+ xlab("") + ylab("") 
+ geom_bar(width = 1) + facet_grid(cols = vars(Gender)) + coord_polar(theta = "y")+ xlab("") + ylab("")  + ggtitle("")
  # show plots together
-plot_grid(pM, pF, labels = "AUTO")
+ title <- ggdraw() + 
+  draw_label("cancer level vs gender",fontface = 'bold',x = 0,hjust = 0)
+ plot_row <- plot_grid(pM, pF)
+ plot_grid(title, plot_row,ncol = 1,rel_heights = c(0.05, 1))
+ 
+ 
 
 
 ```
@@ -147,9 +152,9 @@ library("ggpubr")
 ggscatter(cancer_patient, x = "Snoring", y = "Fatigue", 
           add = "reg.line", conf.int = TRUE, 
           cor.coef = TRUE, cor.method = "pearson",
-          xlab = "Snoring", ylab = "Fatigue")
+          xlab = "Snoring", ylab = "Fatigue") + ggtitle("corralation of Snoring & Fatigue")
 ```
-surprisingly we saw no significant correlation.
+Surprisingly we saw no significant correlation.
 
 
 
@@ -178,13 +183,13 @@ ggplot(pca_cancer_patient, aes(y=PC1, x = PC2, col=Level)) +
   ggtitle("cancer patient Dataset")
 
 ```
-pca gave as moderate results, lets check our variance - explaning in the 4 firsts pc components
+pca gave as moderate results,with each group are dominant in certain area, but the groups are not completely separated. Lets check our variance - explaining in the 4 firsts pc components
 ```{r}
 # variance of the 4 firsts pc components
 print(round(prcomp_cancer_patient$sdev[1:4] / sum(prcomp_cancer_patient$sdev) * 100, 2))
 ```
-as showed above - the pc components explain small part of the variance in the data, and this is probabaly the cause to the moderate success in the separation of the sampels.
-????maybe that is because our data are not lineary seperable, and pca is a linear algorithem.????
+as showed above - the pc components explain small part of the variance in the data, and this is probabaly the cause to the moderate success in the separation of the samples.
+Maybe our data are not lineary separable, and pca as a linear algorithem having a hard time seprate it, we will check this later.
 
 
 ## prepreing the data
@@ -249,32 +254,17 @@ And finally, we are ready to run our algorithm. We'll start with K=3 as arbitrar
 ```{r}
 # get predictions for the test set from knn, send as input the features columns and the train labels 
 cancer_test_pred_z <- knn(train = cancer_train_z[1:23], test = cancer_test_z[1:23], cl = cancer_train_labels, k=3)
+# check results
+correction <- (cancer_test_pred_z == cancer_test_z$Level)
+"TRUE"
+table(correction)[["TRUE"]]
+"FALSE"
+200 - table(correction)[["TRUE"]]
 ```
+In the above table we see that all of the patients were predicted correctly. 
 
-Since the knn function returns a factor vector of the predicted values, we'll compare that vector with the true labels we saved in advance. We'll do the comparison with the CrossTable function, from the gmodels package we'll load: 
 
-```{r}
-library(gmodels)
-# show preformence in table (numeric)
-CrossTable(x = cancer_test_labels, y = cancer_test_pred_z, prop.chisq=FALSE)
-
-#knn_model contains only preicted value
-test_v_1 <- cbind(cancer_test_z,cancer_test_pred_z)
-#This will return TRUE or FALSE.
-test_v_1$Correct <- test_v_1$Level == test_v_1$cancer_test_pred_z
-
-# again here we also plot the types according two PCA with TRUE or FALSE labeling, and color of the true lable
-ggplot(test_v_1, aes(y=PC1, x = PC2, col=cancer_test_labels, label = Correct)) +
-  geom_point(size=5, alpha = 0.2) + 
-  theme_moma() +
-  theme(legend.position = "bottom") +
-  ggtitle("KNN Prediction Results") + 
-  geom_text(size = 3, show.legend = FALSE)
-# True on each point means that it is correct prediction, FALSE means wrong prediction
-```
-In the above table we see that all of the patients were predicted correctly. ???REMOVE PCA???
-
-Lets check the best K hyper-parameter for KNN -
+Lets check the results for range of K hyper-parameter for KNN -
 ```{r}
 #setting a seed for reproducible results
 set.seed(1234)
@@ -308,14 +298,22 @@ we will start with c=0.1 and gamma = 10 as arbitrary hyper-parameters -
 # fit model
 
 classifier <- svm(Level~ ., data = cancer_train_z[1:24], kernel = "radial", cost = 0.1, gamma = 10)
-print(classifier)
 svm_pred = predict(classifier, newdata = cancer_test_z[1:23])
 
-library(gmodels)
+# check  true,false classifying rate
+correction <- (svm_pred == cancer_test_z$Level)
+"TRUE"
+table(correction)[["TRUE"]]
+"FALSE"
+200 - table(correction)[["TRUE"]]
+```
+There is some mistkaes, lets check it more deeply:
+
+```{r}
 # show preformence in table
 CrossTable(x = cancer_test_labels, y = svm_pred, prop.chisq=FALSE)
 
-#knn_model contains only preicted value
+#add to test the preicted values
 test_v_1 <- cbind(cancer_test_z,svm_pred)
 #This will return TRUE or FALSE.
 test_v_1$Correct <- test_v_1$Level == test_v_1$svm_pred
@@ -334,44 +332,50 @@ ggplot(test_v_1, aes(y=PC1, x = PC2, col=cancer_test_labels, label = Correct, sh
 We got 3 mistakes on the test, so now we want to find better hyper-parameters.
 
 # tune cost and gama hyper prameters
+
+Trying range of gamma and cost:
 ```{r}
 # tune model to find optimal cost and gamma values
 tune.out <- tune(svm, Level~ ., data = cancer_train_z[1:24], kernel = "radial",ranges = list(gamma = c(0.1, 1, 5, 10, 100), cost = c(0.1, 1, 5, 10, 100)),tunecontrol = tune.control(sampling = "fix"))
-# show best model
+# show best model parameters
 print(tune.out$best.parameters)
 ```
 
-???I cant see the above output....???
 From the results we can see the c=0.1 and gamma=0.1 are better hyper-parameter, so lets run with them -
+(hoping we will get 100% accurate like the knn model)
 ```{r}
 # fit model
 classifier <- svm(Level~ ., data = cancer_train_z[1:24], kernel = "radial", cost = 0.1, gamma = 0.1)
-print(classifier)
 svm_pred = predict(classifier, newdata = cancer_test_z[1:23])
 
-library(gmodels)
-# show preference in table
-CrossTable(x = cancer_test_labels, y = svm_pred, prop.chisq=FALSE)
+# check if its 100%  show true,false classifing rate
+correction <- (svm_pred == cancer_test_z$Level)
+"TRUE"
+table(correction)[["TRUE"]]
+"FALSE"
+200 - table(correction)[["TRUE"]]
 ```
 Now we have 0 mistakes, so we got excellent results with SVM.
 
 
-??? Maybe it is not needed???
-We saw very great results in KNN and radial SVM, but moderate separation in the PCA(although PCA is not classifier, we expect to see good separation of the samples by class which is not so good). We suggest that it may cause by the data which is cannot be separated linearly, so we want to test linear SVM to try to approve our hypothesis.
+We saw very great results in KNN and radial SVM, but moderate separation in the PCA(although PCA is not classifier, we expect to see good separation of the samples by class which is not so good). We suggested that it may cause by the data which is cannot be separated linearly, so we want to test linear SVM to try to check our hypothesis.
 
 # linear svm
 
 ```{r}
 # fit model
 classifier <- svm(Level~ ., data = cancer_train_z[1:24], kernel = "linear", cost = 0.1, gamma = 0.1)
-print(classifier)
 svm_pred = predict(classifier, newdata = cancer_test_z[1:23])
 
-library(gmodels)
-# show preformence in table
-CrossTable(x = cancer_test_labels, y = svm_pred, prop.chisq=FALSE)
+# check  true,false classifying rate
+correction <- (svm_pred == cancer_test_z$Level)
+"TRUE"
+table(correction)[["TRUE"]]
+"FALSE"
+200 - table(correction)[["TRUE"]]
 ```
 From the results we can see that we have 0 mistakes, which not support our hypothesis.
+
 
 Now, After KNN and SVM, we wanted to test a model that gives us information about patient's properties importance for the level of cancer, which we can learn from the output of the model.
 We choose Decision-Tree model for our next model -
@@ -401,11 +405,10 @@ Next we'll look at the summary of the model.
 ```{r}
 summary(cancer_model)
 ```
-We got 100% accuracy ???(on train data)???.
+We got 100% accuracy on train data.
 
-So Another way to look about our tree relay hard on only 5 of the features, is that we can see that we got 100% accuracy relaying on those features so we can said that the patient's level of the cancer can be predicted by its Passive Smoker, Fatigue, Wheezing, Obesity and snoring features level, and it is not decrease our performance as we thought before.
 
-As we now know, it is very important to evaluate our model performance:
+As we now know, it is very important to evaluate our model performance on the test set:
 
 ```{r}
 #setting a seed for reproducible results
@@ -417,31 +420,21 @@ CrossTable(cancer_test_labels, cancer_pred, prop.chisq = FALSE,
            prop.c = FALSE, prop.r = FALSE, 
            dnn = c('actual Type', 'predicted Type'))
 
-#DT_Model merge
-#pred contains only predicted value
-test_merged1 <- cbind(cancer_test_z,cancer_pred)
-test_merged1$Correct <- test_merged1$Level == 
-  test_merged1$cancer_pred #This will return TRUE or FALSE.
-
-# again here we also plot the types according two specific columns after PCA
-c1 <-ggplot(test_merged1, aes(y=PC1, x = PC2, col=Level, label = Correct)) +
-  geom_point(size=5, alpha = 0.2) + 
-  theme_moma() +
-  theme(legend.position = "bottom") +
-  ggtitle("DT Prediction Results") + 
-  geom_text(size = 3, show.legend = FALSE)
-show(c1)
 ```
+We got 100% accuracy on test data.
 
-From the results we can see the we have 100% accuracy.
+So Another way to look about our tree relay hard on only 5 of the features, is that we can see that we got 100% accuracy relaying on those features so we can said that the patient's level of the cancer can be predicted by its Passive Smoker, Fatigue, Wheezing, Obesity and snoring features level, and it is not decrease our performance as we thought before.
 
-Now we want to try and explore again if we can separate our data in linear way, but other than PCA. So we chose to use LDA, that focusing more on separation rather than variation (like PCA). Moreover, 
+
+We did dimensionality reduction using PCA and classification using 3 algorithms. 
+Finely, we want to try another dimensionality reduction to see if its can sepreate the data better, in adittion we would like to check if
+LDA can classify the data correctly according to its separation.
 
 
 ## LDA
 Linear discriminant analysis (LDA), is used as a tool for classification, dimension reduction, and data visualization. It is try to maximize the distance between the means and to minimize the variation.
 
-Lets run LDA -
+Lets run LDA, and check how the ldas explaining our data:
 ```{r}
 # apply LDA
 linear <- lda(Level~., cancer_train_z[1:24])
@@ -465,7 +458,7 @@ ldahist(data = p$x[,2], g = cancer_train_z$Level)
 We can see that the separation is not perfect -
 1. In LD1 there is overlap between Medium and Low.
 2. In LD2 there is overlap between all of the classes (Low,Medium,High).
-NOTE: the separation in LDA1 much better corresponding to the results before.
+NOTE: the separation in LDA1 much better corresponding to the results above.
 
 ### bi-plot
 Lets view the LDA1/2 plot -
@@ -502,7 +495,6 @@ We can see that on the test we have 10 mistakes, again Medium that classified as
 
 Those results can imply us that the linear algorithm is not the best for our data.
 
-???THERE is needed in the TEST and TRAIN in the LDA???
 
 ## Summary & Conclusions :
 
