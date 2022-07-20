@@ -169,7 +169,7 @@ pca_cancer_patient <-  cbind(cancer_patient,PC1 = prcomp_cancer_patient$x[, 1],P
 ```
 
 lets plot our pca results:
-````{r}
+```{r}
 # plot the types according two specific columns after PCA
 ggplot(pca_cancer_patient, aes(y=PC1, x = PC2, col=Level)) +
   geom_point(size=5, alpha = 0.2) + 
