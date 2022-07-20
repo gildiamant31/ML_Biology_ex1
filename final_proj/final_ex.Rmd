@@ -39,7 +39,6 @@ library(ggplot2)
 library(purrr)
 library(class)
 ```
-create themes for all prediction results plots:
 ```{r echo=FALSE}
 ##### Theme Moma #####
 theme_moma <- function(base_size = 12, base_family = "Helvetica") {
@@ -54,7 +53,6 @@ theme_moma <- function(base_size = 12, base_family = "Helvetica") {
   )
 }
 ```
-
 ### Have a look at the data
 Read the data to a local variable
 Firstly,Read the data and lets observe the properties of the data:
@@ -64,9 +62,6 @@ Firstly,Read the data and lets observe the properties of the data:
 cancer_patient <- read_excel("cancer patient data sets.xlsx")
 #show data as str
 str(cancer_patient)
-#show data dim
-print("data dimensions: ")
-dim(cancer_patient)
 ```
 The data is about classified the level of the cancer disease for a patient, determined by 23 various aspects of the patient (from age and gender to snoring or weight loss level).
 As we can see there is 3 cancer levels "High"/"Medium"/"Low" which are defined as a strings labels. For each patient there are various aspects
@@ -225,24 +220,7 @@ table(correction)[["TRUE"]]
 "FALSE"
 200 - table(correction)[["TRUE"]]
 ```
-All of the patients were predicted correctly. 
-
-Lets check the results for range of K hyper-parameter for KNN -
-```{r}
-set.seed(1234)
-# loop over 40 different k values and saved the accuracy of algorithm prediction in array
-i=1
-k_options=1
-for (i in 1:40){
-knn_pred <- knn(train=cancer_train_z[1:23], test=cancer_test_z[1:23], cl=cancer_train_labels, k=i)
-k_options[i] <- 100 * sum(cancer_test_labels == knn_pred)/NROW(cancer_test_labels)
-}
-# show the differences of the accuracy for each k value in a plot.
-plot(k_options, type="b", xlab="K- Value",
-     ylab="Accuracy level",
-     main = "knn model accuracy for different k values")
-```
-As we saw, we can use KNN to as multi-class classifier algorithm. If we use 'k' in values of 1 - 9 then the KNN got excellent results with zero mistakes.
+All of the patients were predicted correctly- k=3 is the best we can do. 
 
 Now, we want to check another classification algorithm. but this time we want to check other approach. The KNN working by clustering, and now we want to work by a "learnable" vector separation model, so we will use SVM.
 
