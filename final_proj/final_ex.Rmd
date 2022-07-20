@@ -101,10 +101,14 @@ Firstly, we asked if cancer condition is different between genders in our data
  cancer_patient_gender$Gender[cancer_patient_gender$Gender==1] = "Male"
  cancer_patient_gender$Gender[cancer_patient_gender$Gender==2] = "Female"
  # create two plots
- pM = ggplot(cancer_patient_gender[cancer_patient_gender$Gender=="Male",], aes(x = factor(1) , fill = Level)) +
- geom_bar(width = 1) + facet_grid(cols = vars(Gender)) + coord_polar(theta = "y")+ xlab("") + ylab("") 
- pF = ggplot(cancer_patient_gender[cancer_patient_gender$Gender=="Female",], aes(x = factor(1) , fill = Level)) +
- geom_bar(width = 1) + facet_grid(cols = vars(Gender)) + coord_polar(theta = "y")+ xlab("") + ylab("")  + ggtitle("")
+ pM = ggplot(cancer_patient_gender[cancer_patient_gender$Gender=="Male",],
+             aes(x = factor(1) , fill = Level)) +
+   geom_bar(width = 1) + facet_grid(cols = vars(Gender)) + 
+   coord_polar(theta = "y")+ xlab("") + ylab("") 
+ pF = ggplot(cancer_patient_gender[cancer_patient_gender$Gender=="Female",],
+             aes(x = factor(1) , fill = Level)) +
+   geom_bar(width = 1) + facet_grid(cols = vars(Gender)) + 
+   coord_polar(theta = "y")+ xlab("") + ylab("")  + ggtitle("")
  # show plots together
  title <- ggdraw() + 
   draw_label("cancer level vs gender",fontface = 'bold',x = 0,hjust = 0)
@@ -145,7 +149,9 @@ We choose PCA algorithm which is reliable dimensional reducerfor showing our dat
 # Preform PCA on our data
 prcomp_cancer_patient <- prcomp(cancer_patient[, 2:24])
 # bind between 2 first pcas and our dataframe
-pca_cancer_patient <-  cbind(cancer_patient,PC1 = prcomp_cancer_patient$x[, 1],PC2 = prcomp_cancer_patient$x[, 2])
+pca_cancer_patient <-  cbind(cancer_patient,
+                             PC1 = prcomp_cancer_patient$x[, 1],
+                             PC2 = prcomp_cancer_patient$x[, 2])
 ```
 lets plot our pca results:
 ```{r}
@@ -207,8 +213,11 @@ As we can see, the distribution is preserved.
 
 And finally, we are ready to run our algorithm. We'll start with K=3 as arbitrary hyper-parameter, and check another options if its wont be good.
 ```{r}
-# get predictions for the test set from knn, send as input the features columns and the train labels 
-cancer_test_pred_z <- knn(train = cancer_train_z[1:23], test = cancer_test_z[1:23], cl = cancer_train_labels, k=3)
+# get predictions for the test set from knn,
+#send as input the features columns and the train labels 
+cancer_test_pred_z <- knn(train = cancer_train_z[1:23],
+                          test = cancer_test_z[1:23], 
+                          cl = cancer_train_labels, k=3)
 # check results
 correction <- (cancer_test_pred_z == cancer_test_z$Level)
 "TRUE"
@@ -229,7 +238,9 @@ knn_pred <- knn(train=cancer_train_z[1:23], test=cancer_test_z[1:23], cl=cancer_
 k_options[i] <- 100 * sum(cancer_test_labels == knn_pred)/NROW(cancer_test_labels)
 }
 # show the differences of the accuracy for each k value in a plot.
-plot(k_options, type="b", xlab="K- Value",ylab="Accuracy level", main = "knn model accuracy for different k values")
+plot(k_options, type="b", xlab="K- Value",
+     ylab="Accuracy level",
+     main = "knn model accuracy for different k values")
 ```
 As we saw, we can use KNN to as multi-class classifier algorithm. If we use 'k' in values of 1 - 9 then the KNN got excellent results with zero mistakes.
 
@@ -256,13 +267,20 @@ table(correction)[["TRUE"]]
 There is some mistkaes, lets check it more deeply:
 ```{r}
 # show preformence in table
-CrossTable(x = cancer_test_labels, y = svm_pred, prop.chisq=FALSE)
+CrossTable(x = cancer_test_labels, y = svm_pred, prop.chisq=FALSE,format ="SPSS")
+# check  true,false classifying rate
+correction <- (svm_pred == cancer_test_z$Level)
+"TRUE"
+table(correction)[["TRUE"]]
+"FALSE"
+200 - table(correction)[["TRUE"]]
 #add to test the preicted values
 test_v_1 <- cbind(cancer_test_z,svm_pred)
 #This will return TRUE or FALSE.
 test_v_1$Correct <- test_v_1$Level == test_v_1$svm_pred
 # again here we also plot the types according two PCA with TRUE or FALSE labeling, and color of the true lable
-ggplot(test_v_1, aes(y=PC1, x = PC2, col=cancer_test_labels, label = Correct, shape = Level)) +
+ggplot(test_v_1, aes(y=PC1, x = PC2, col=cancer_test_labels,
+                     label = Correct, shape = Level)) +
   geom_point(size=5, alpha = 0.2) + 
   scale_color_manual(values=c("#000000","#FF0000","#00BA00")) +
   theme_moma() +
@@ -275,7 +293,10 @@ We got 3 mistakes on the test, so now we want to find better hyper-parameters.
 Trying range of gamma and cost:
 ```{r}
 # tune model to find optimal cost and gamma values
-tune.out <- tune(svm, Level~ ., data = cancer_train_z[1:24], kernel = "radial",ranges = list(gamma = c(0.1, 1, 5, 10, 100), cost = c(0.1, 1, 5, 10, 100)),tunecontrol = tune.control(sampling = "fix"))
+tune.out <- tune(svm, Level~ ., data = cancer_train_z[1:24],
+                 kernel = "radial",ranges = list(gamma = c(0.1, 1, 5, 10, 100),
+                 cost = c(0.1, 1, 5, 10, 100)),
+                 tunecontrol = tune.control(sampling = "fix"))
 # show best model parameters
 print(tune.out$best.parameters)
 ```
@@ -412,7 +433,7 @@ After PCA, we tried to use other method ,KNN that does classification by cluster
 
 The next algorithm was SVM, we wanted to use other classification method, that is not working on clustering, but on "learn-able" vector. The results were great 100% accuracy.
 
-Because we got great results on KNN and SVM which separate the data non-linearly and because that on the PCA that works linearly we didnt get great results, we wanted to check if maybe algorithm that separate the data linearly is not suited to our data. As so we tried to use Linear SVM to explore this hypothesis, but Linear SVM worked great - 100% accuracy, which not support the hypothesisץ
+Because we got great results on KNN and SVM which separate the data non-linearly and because that on the PCA that works linearly we didn't get great results, we wanted to check if maybe algorithm that separate the data linearly is not suited to our data. As so we tried to use Linear SVM to explore this hypothesis, but Linear SVM worked great - 100% accuracy, which not support the hypothesis.
 
 The next algorithm was DT, we wanted to use it for trying to understand better the importance of each feature. We found that 5 feature is good enough for great results in the DT - 100% accuracy. The feature per patient are - Passive Smoker, Fatigue, Wheezing, Obesity and snoring features level.
 
